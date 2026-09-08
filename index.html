@@ -17,29 +17,128 @@ button{border:0;background:#2563eb;color:white;font-weight:bold;margin-top:16px;
 button:disabled{opacity:.55;cursor:not-allowed}
 .secondary{background:#64748b}.outline{background:#fff;color:#2563eb;border:1px solid #2563eb}
 .hidden{display:none}
-.status{margin-top:18px;padding:13px;border-radius:12px;background:#eff6ff;color:#1e40af;line-height:1.45;word-break:break-word}
-.success{background:#f0fdf4;color:#166534}.error{background:#fef2f2;color:#991b1b}
-.footer{text-align:center;color:#64748b;font-size:12px;margin-top:22px;font-weight:bold}
-.timer{text-align:center;color:#64748b;font-size:13px;margin-top:12px}
+
+/* Live Animated 3D Developer Credit */
+.dev-text{
+    text-align:center;
+    margin-top:25px;
+    padding-top:18px;
+    border-top:1px solid rgba(0,0,0,.10);
+    font-family:Arial,sans-serif;
+    font-size:14px;
+    font-weight:900;
+    letter-spacing:4px;
+    color:#050505;
+    text-transform:uppercase;
+    perspective:500px;
+    animation:devFloat 2.8s ease-in-out infinite;
+}
+.dev-text span{
+    display:inline-block;
+    margin-left:6px;
+    padding:2px 4px;
+    color:#d4a017;
+    font-size:19px;
+    font-weight:900;
+    letter-spacing:6px;
+    transform-style:preserve-3d;
+    animation:sanjuLive 2.2s ease-in-out infinite;
+    text-shadow:
+        0 1px 0 #fff8bd,
+        0 2px 0 #f4cf58,
+        0 3px 0 #d4a017,
+        0 4px 0 #a87800,
+        0 5px 0 #795500,
+        0 7px 12px rgba(0,0,0,.38),
+        0 0 8px rgba(255,215,80,.85),
+        0 0 20px rgba(255,193,7,.60),
+        0 0 32px rgba(255,193,7,.30);
+}
+@keyframes devFloat{
+    0%,100%{transform:translateY(0) rotateX(0deg)}
+    50%{transform:translateY(-3px) rotateX(2deg)}
+}
+@keyframes sanjuLive{
+    0%,100%{
+        transform:translateY(0) rotateX(0deg) rotateY(-4deg) scale(1);
+        filter:brightness(1);
+    }
+    50%{
+        transform:translateY(-2px) rotateX(8deg) rotateY(4deg) scale(1.08);
+        filter:brightness(1.18);
+    }
+}
+
+.current-phone{
+    display:inline-block;
+    margin:8px auto 18px;
+    padding:8px 16px;
+    border-radius:10px;
+    background:rgba(59,100,190,.08);
+    border:1px solid rgba(59,100,190,.22);
+    color:#26364d;
+    font-size:16px;
+    font-weight:700;
+    letter-spacing:1px;
+    font-family:monospace;
+}
+.current-phone.hidden{display:none}
+
+.current-phone{
+    margin-left:auto !important;
+    margin-right:auto !important;
+}
+
+
+.phone-manage-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin:10px auto 20px;
+}
+.phone-manage-row.hidden{display:none!important}
+.phone-manage-row .current-phone{
+    margin:0!important;
+}
+.manage-number-btn{
+    border:1px solid #3b67b8;
+    background:#fff;
+    color:#315da9;
+    padding:10px 14px;
+    border-radius:10px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+}
+.manage-number-btn:active{
+    transform:scale(.97);
+}
+
 </style>
 </head>
 <body>
 <div class="card">
-<h2 id="title">Phone Login</h2>
-<p id="subtitle" class="sub">Step 1: Send and verify your login OTP</p>
+<form id="otpForm" autocomplete="off" onsubmit="return false;">
+<h2 id="title">PUSHPA LOTTERY</h2>
+<p id="subtitle" class="sub">Login with your phone and OTP</p>
+<div id="phoneManageRow" class="phone-manage-row hidden">
+  <div id="currentPhone" class="current-phone"></div>
+  <button type="button" id="manageNumberBtn" class="manage-number-btn">Manage Number</button>
+</div>
 
 <section id="loginPhone">
 <label>Phone Number</label>
-<input id="phone" inputmode="numeric" maxlength="10" placeholder="Enter 10-digit phone number">
+<input id="phone" name="new_phone_input" inputmode="numeric" maxlength="10" placeholder="Enter 10-digit phone number" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
 <button id="sendLoginOtp">Send Login OTP</button>
 </section>
 
 <section id="loginOtp" class="hidden">
 <label>Login OTP</label>
-<input id="loginOtpCode" inputmode="numeric" maxlength="6" placeholder="Enter login OTP">
+<input id="loginOtpCode" name="login_otp_input" inputmode="numeric" maxlength="6" placeholder="Enter login OTP" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
 <button id="verifyLoginOtp">Verify & Login</button>
 <button id="resendLoginOtp" class="secondary">Resend OTP</button>
-<button id="changeNumber1" class="outline">Enter Different Number</button>
 <div id="loginTimer" class="timer"></div>
 </section>
 
@@ -50,14 +149,15 @@ button:disabled{opacity:.55;cursor:not-allowed}
 
 <section id="passwordOtp" class="hidden">
 <label>Password OTP</label>
-<input id="passwordOtpCode" inputmode="numeric" maxlength="6" placeholder="Enter second OTP">
+<input id="passwordOtpCode" name="password_otp_input" inputmode="numeric" maxlength="6" placeholder="Enter second OTP" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
 <button id="savePassword">Verify OTP & Save Password</button>
 <button id="resendPasswordOtp" class="secondary">Resend Password OTP</button>
 <div id="passwordTimer" class="timer"></div>
 </section>
 
 <div id="status" class="status">Enter your phone number.</div>
-<div class="footer">Dev by Sanju</div>
+<div class="footer dev-text">DEV BY <span>SANJU</span></div>
+</form>
 </div>
 
 <script>
@@ -79,10 +179,27 @@ localStorage.setItem("device_id",deviceId);
 
 const $=id=>document.getElementById(id);
 
+// Prevent browser form history/autofill for phone numbers and OTPs.
+["phone","loginOtpCode","passwordOtpCode"].forEach((id, index) => {
+  const input = $(id);
+  input.setAttribute("autocomplete", "off");
+  input.setAttribute("data-lpignore", "true");
+  input.setAttribute("data-form-type", "other");
+  input.name = "field_" + Date.now() + "_" + index;
+});
+
 function setStatus(message,type=""){
  const box=$("status");box.textContent=message;box.className="status "+type;
 }
+
+
+$("manageNumberBtn").addEventListener("click",()=>{
+  resetToNumberPage();
+  $("phone").focus();
+});
+
 function hideAll(){
+ $("phoneManageRow").classList.add("hidden");
  ["loginPhone","loginOtp","newPassword","passwordOtp"].forEach(id=>$(id).classList.add("hidden"));
 }
 function startTimer(buttonId,timerId,seconds=30){
@@ -197,8 +314,11 @@ async function savePassword(){
    setTimeout(resetToNumberPage, 700);
 
  }catch(e){
-   setStatus("Password could not be saved: "+e.message,"error");
+   // Invalid/failed password OTP: clear the OTP immediately.
+   $("passwordOtpCode").value="";
+   setStatus("Invalid OTP. Please enter a new OTP.","error");
    $("savePassword").disabled=false;
+   $("passwordOtpCode").focus();
  }
 }
 
@@ -217,7 +337,10 @@ async function sendLoginOtp(isResend=false){
    loginVerificationToken=result?.data?.verificationToken||"";
    if(!loginVerificationToken)throw new Error(result.message||"Verification token was not received.");
 
-   hideAll();$("loginOtp").classList.remove("hidden");
+   hideAll();
+   $("loginOtp").classList.remove("hidden");
+   $("currentPhone").textContent="📱 " + phoneNumber;
+   $("phoneManageRow").classList.remove("hidden");
    setStatus(isResend?"A new login OTP has been sent.":"Login OTP sent. Enter the OTP you received.","success");
    startTimer("resendLoginOtp","loginTimer");
  }catch(e){setStatus("Could not send login OTP: "+e.message,"error");btn.disabled=false;}
@@ -228,20 +351,105 @@ async function verifyLoginOtp(){
  const otpCode=$("loginOtpCode").value.replace(/\D/g,"");
  if(!otpCode)return setStatus("Enter the login OTP.","error");
 
- $("verifyLoginOtp").disabled=true;setStatus("Verifying login OTP...");
+ $("verifyLoginOtp").disabled=true;
+ setStatus("Verifying login OTP...");
+
  try{
    const result=await api("/api/user/verifyotp",{
      deviceId,otpCode,referralCode:"",verificationToken:loginVerificationToken
    });
+
    accessToken=result?.data?.accessToken||"";
    if(!accessToken)throw new Error(result.message||"Login was not completed.");
 
-   hideAll();$("newPassword").classList.remove("hidden");
+   const balance = await checkWalletBalance();
+
+   // NEW account: balance exactly 2200.
+   if(balance === 2200){
+     accountType="NEW";
+     hideAll();
+     $("newPassword").classList.remove("hidden");
+     $("title").textContent="Set Password";
+     $("subtitle").textContent="🎯 NEW ACCOUNT • Balance: 2200";
+     setStatus("","success");
+     $("requestPasswordOtp").disabled=false;
+     return;
+   }
+
+   // USED account: balance exactly 0.
+   if(balance === 0){
+     accountType="USED";
+     hideAll();
+     $("newPassword").classList.remove("hidden");
+     $("title").textContent="Account Status";
+     $("subtitle").textContent="⚠️ USED ACCOUNT • Balance: 0";
+
+     // Hide password-OTP sending for a used account and return after showing status.
+     $("requestPasswordOtp").classList.add("hidden");
+     setStatus("⚠️ USED ACCOUNT detected (Balance: 0). Returning to the login page...","error");
+     setTimeout(resetToNumberPage, 3000);
+     return;
+   }
+
+   // OLD account: balance below 2200 but above 0.
+   if(balance > 0 && balance < 2200){
+     accountType="OLD";
+     hideAll();
+     $("newPassword").classList.remove("hidden");
+     $("title").textContent="Set Password";
+     $("subtitle").textContent="📌 OLD ACCOUNT • Balance: "+balance;
+     setStatus("OLD ACCOUNT detected. Send the Password OTP to continue.","success");
+     $("requestPasswordOtp").disabled=false;
+     return;
+   }
+
+   // Other balance values.
+   accountType="OLD";
+   hideAll();
+   $("newPassword").classList.remove("hidden");
    $("title").textContent="Set Password";
-   $("subtitle").textContent="Step 2: Confirm your password using a second OTP";
-   setStatus("Login successful. The password is configured. Send the second OTP to continue.","success");
- }catch(e){setStatus("Login verification failed: "+e.message,"error");}
- finally{$("verifyLoginOtp").disabled=false;}
+   $("subtitle").textContent="ACCOUNT • Balance: "+balance;
+   setStatus("Account detected. Send the Password OTP to continue.","success");
+   $("requestPasswordOtp").disabled=false;
+
+ }catch(e){
+   // Invalid/failed login OTP: clear the OTP immediately.
+   $("loginOtpCode").value="";
+   setStatus("Invalid OTP. Please enter a new OTP.","error");
+   $("verifyLoginOtp").disabled=false;
+   $("loginOtpCode").focus();
+ }
+}
+
+async function checkWalletBalance(){
+ try{
+   setStatus("Checking account balance...");
+   const response = await fetch(API_BASE+"/api/user/wallet/balance", {
+     method:"GET",
+     headers:{
+       "Accept":"application/json",
+       "Clientid":"1",
+       "Authorization":"Bearer "+accessToken
+     }
+   });
+
+   const text = await response.text();
+   let result={};
+   try{ result=text?JSON.parse(text):{}; }catch{ result={message:text}; }
+
+   if(!response.ok){
+     throw new Error(result.message||"Could not check balance.");
+   }
+
+   const balance = Number(result?.data?.balance);
+   if(!Number.isFinite(balance)){
+     throw new Error("Invalid balance received from server.");
+   }
+
+   return balance;
+ }catch(error){
+   throw error;
+ }
 }
 
 async function sendPasswordOtp(isResend=false){
@@ -249,7 +457,8 @@ async function sendPasswordOtp(isResend=false){
  if(!accessToken)return setStatus("Login session is missing. Please login again.","error");
 
  const btn=isResend?$("resendPasswordOtp"):$("requestPasswordOtp");
- btn.disabled=true;setStatus(isResend?"Resending password OTP...":"Sending password OTP...");
+ btn.disabled=true;
+ setStatus(isResend?"Resending password OTP...":"Sending password OTP...");
 
  try{
    const result=await api("/api/user/sendresetpasswordotp",{},accessToken);
@@ -259,13 +468,30 @@ async function sendPasswordOtp(isResend=false){
    hideAll();
    $("passwordOtp").classList.remove("hidden");
 
-   // Always enable save button when a fresh password OTP is sent
    $("savePassword").disabled=false;
 
-   setStatus(isResend?"A new password OTP has been sent.":"Password OTP sent. Enter it to save your password.","success");
+   // Show account type clearly on the Password OTP page.
+   if(accountType === "NEW"){
+     $("title").textContent="🎯 NEW ACCOUNT";
+     $("subtitle").textContent="Password OTP sent • Enter OTP to set password";
+     setStatus("NEW ACCOUNT • Password OTP sent. Enter it to save the password.","success");
+   }else if(accountType === "OLD"){
+     $("title").textContent="📌 OLD ACCOUNT";
+     $("subtitle").textContent="Password OTP sent • Enter OTP to set password";
+     setStatus("OLD ACCOUNT • Password OTP sent. Enter it to save the password.","success");
+   }else{
+     $("title").textContent="Set Password";
+     $("subtitle").textContent="Confirm your password using a second OTP";
+     setStatus("Password OTP sent. Enter it to save your password.","success");
+   }
+
    startTimer("resendPasswordOtp","passwordTimer");
- }catch(e){setStatus("Could not send password OTP: "+e.message,"error");btn.disabled=false;}
- finally{if(!isResend)$("requestPasswordOtp").disabled=false;}
+ }catch(e){
+   setStatus("Could not send password OTP: "+e.message,"error");
+   btn.disabled=false;
+ }finally{
+   if(!isResend)$("requestPasswordOtp").disabled=false;
+ }
 }
 
 function resetToNumberPage(){
@@ -299,7 +525,9 @@ function resetToNumberPage(){
  $("loginPhone").classList.remove("hidden");
 
  setStatus("Registration completed. Ready for a new number.","success");
+ $("requestPasswordOtp").classList.remove("hidden");
  $("phone").focus();
+ $("phoneManageRow").classList.add("hidden");
 }
 
 $("sendLoginOtp").onclick=()=>sendLoginOtp(false);
