@@ -2,124 +2,208 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>OTP Login</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Login & Password OTP</title>
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f1f3f8;font-family:Arial,sans-serif;padding:20px}
-.card{width:100%;max-width:460px;background:#fff;border-radius:22px;padding:30px;box-shadow:0 15px 40px #0002}
-h2{text-align:center;color:#172033;margin:0 0 8px}.sub{text-align:center;color:#64748b;font-size:14px;margin-bottom:20px}
-label{display:block;font-size:14px;font-weight:bold;margin:14px 0 7px}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;font-family:Arial,sans-serif;background:#f1f3f8;color:#172033}
+.card{width:100%;max-width:470px;background:white;border-radius:22px;padding:30px;box-shadow:0 15px 40px rgba(0,0,0,.12)}
+h2{text-align:center;margin:0 0 8px}.sub{text-align:center;color:#64748b;margin:0 0 22px;font-size:14px}
+label{display:block;font-weight:bold;font-size:14px;margin:14px 0 7px}
 input,button{width:100%;height:52px;border-radius:12px;font-size:16px}
-input{border:1px solid #cbd5e1;padding:0 14px;outline:none}input:focus{border-color:#2563eb}
-button{border:0;background:#2563eb;color:white;font-weight:bold;margin-top:16px;cursor:pointer}button:disabled{opacity:.6}
-.hidden{display:none}.status{margin-top:18px;padding:13px;border-radius:12px;background:#eff6ff;color:#1e40af;font-size:14px;word-break:break-word}
-.error{background:#fef2f2;color:#991b1b}.success{background:#f0fdf4;color:#166534}
+input{border:1px solid #cbd5e1;padding:0 14px;outline:none}input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+button{border:0;background:#2563eb;color:white;font-weight:bold;margin-top:16px;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}
+.secondary{background:#64748b}.hidden{display:none}
+.status{margin-top:18px;padding:13px;border-radius:12px;background:#eff6ff;color:#1e40af;line-height:1.45;word-break:break-word}
+.success{background:#f0fdf4;color:#166534}.error{background:#fef2f2;color:#991b1b}
 </style>
 </head>
 <body>
 <div class="card">
-<h2>Phone Login</h2>
-<p class="sub">Login with your phone and OTP</p>
+<h2 id="title">Phone Login</h2>
+<p id="subtitle" class="sub">Step 1: Send and verify your login OTP</p>
 
-<div id="loginStep">
+<section id="loginPhone">
 <label>Phone Number</label>
-<input id="phone" maxlength="10" inputmode="numeric" placeholder="Enter 10-digit number">
-<button id="sendBtn">Send OTP</button>
-</div>
+<input id="phone" inputmode="numeric" maxlength="10" placeholder="Enter 10-digit phone number">
+<button id="sendLoginOtp">Send Login OTP</button>
+</section>
 
-<div id="otpStep" class="hidden">
-<label>OTP</label>
-<input id="otp" maxlength="6" inputmode="numeric" placeholder="Enter OTP">
-<button id="verifyBtn">Verify & Login</button>
-</div>
+<section id="loginOtp" class="hidden">
+<label>Login OTP</label>
+<input id="loginOtpCode" inputmode="numeric" maxlength="6" placeholder="Enter login OTP">
+<button id="verifyLoginOtp">Verify & Login</button>
+</section>
 
-<!-- Password is entered only after successful login. It is not saved in localStorage. -->
-<div id="passwordStep" class="hidden">
-<label>Set Password</label>
-<input id="password" type="password" autocomplete="new-password" placeholder="Enter your password">
-<label>Confirm Password</label>
-<input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm password">
-<button id="savePasswordBtn">Save Password</button>
-</div>
+<section id="newPassword" class="hidden">
+<label>New Password</label>
+<input id="password" type="password" autocomplete="new-password" placeholder="Enter new password">
+<button id="requestPasswordOtp">Send Password OTP</button>
+</section>
+
+<section id="passwordOtp" class="hidden">
+<label>Password OTP</label>
+<input id="passwordOtpCode" inputmode="numeric" maxlength="6" placeholder="Enter second OTP">
+<button id="savePassword">Verify OTP & Save Password</button>
+</section>
 
 <div id="status" class="status">Enter your phone number.</div>
 </div>
 
 <script>
-const API = {
-  otpLogin: "/api/user/otplogin",
-  verifyOtp: "/api/user/verifyotp",
-  // Configure this only on an authorized same-origin backend:
-  savePassword: "/api/user/savepassword"
+/*
+  API flow from the supplied screenshots:
+  1. POST /api/user/otplogin
+  2. POST /api/user/verifyotp
+  3. POST /api/user/sendresetpasswordotp
+  4. POST /api/user/verifyresetpassword
+
+  Host this page on an origin authorized by the API server.
+*/
+const API_BASE = "https://nebulaservice.xyz";
+
+let loginVerificationToken = "";
+let passwordVerificationToken = "";
+let accessToken = "";
+
+const deviceId = localStorage.getItem("device_id") ||
+  (crypto.randomUUID ? crypto.randomUUID().replaceAll("-","") : Date.now().toString(36));
+localStorage.setItem("device_id", deviceId);
+
+const $ = id => document.getElementById(id);
+
+function setStatus(message,type=""){
+  const box=$("status");
+  box.textContent=message;
+  box.className="status "+type;
+}
+
+async function api(path, body, token=""){
+  const headers={
+    "Content-Type":"application/json",
+    "Accept":"application/json",
+    "Clientid":"1"
+  };
+  if(token) headers.Authorization="Bearer "+token;
+
+  const response=await fetch(API_BASE+path,{
+    method:"POST",
+    headers,
+    body:JSON.stringify(body)
+  });
+
+  const text=await response.text();
+  let data={};
+  try{data=text?JSON.parse(text):{}}catch{data={message:text}}
+
+  if(!response.ok){
+    throw new Error(data.message || `Server error ${response.status}`);
+  }
+  return data;
+}
+
+$("sendLoginOtp").onclick=async()=>{
+  const phoneNumber=$("phone").value.replace(/\D/g,"");
+  if(!/^\d{10}$/.test(phoneNumber)){
+    return setStatus("Enter a valid 10-digit phone number.","error");
+  }
+
+  $("sendLoginOtp").disabled=true;
+  setStatus("Sending login OTP...");
+
+  try{
+    const result=await api("/api/user/otplogin",{phoneNumber});
+    loginVerificationToken=result?.data?.verificationToken || "";
+    if(!loginVerificationToken) throw new Error(result.message || "Verification token was not received.");
+
+    $("loginPhone").classList.add("hidden");
+    $("loginOtp").classList.remove("hidden");
+    setStatus("Login OTP sent. Enter the OTP you received.","success");
+  }catch(e){
+    setStatus("Could not send login OTP: "+e.message,"error");
+  }finally{
+    $("sendLoginOtp").disabled=false;
+  }
 };
 
-let verificationToken = "";
-let accessToken = "";
-const deviceId = localStorage.getItem("otp_device_id") ||
-  (crypto.randomUUID ? crypto.randomUUID().replaceAll("-","") : String(Date.now()));
-localStorage.setItem("otp_device_id", deviceId);
+$("verifyLoginOtp").onclick=async()=>{
+  const otpCode=$("loginOtpCode").value.replace(/\D/g,"");
+  if(!otpCode) return setStatus("Enter the login OTP.","error");
 
-const $=id=>document.getElementById(id);
-function status(msg,type=""){const e=$("status");e.textContent=msg;e.className="status "+type}
-async function json(res){const t=await res.text();try{return JSON.parse(t)}catch{return {message:t}}}
+  $("verifyLoginOtp").disabled=true;
+  setStatus("Verifying login OTP...");
 
-async function sendOtp(){
-  const phoneNumber=$("phone").value.replace(/\D/g,"");
-  if(!/^\d{10}$/.test(phoneNumber)) return status("Enter a valid 10-digit number.","error");
-  $("sendBtn").disabled=true;status("Sending OTP...");
   try{
-    const res=await fetch(API.otpLogin,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json","Clientid":"1"},body:JSON.stringify({phoneNumber})});
-    const data=await json(res);
-    if(!res.ok||!data?.data?.verificationToken) throw Error(data?.message||"OTP request failed");
-    verificationToken=data.data.verificationToken;
-    $("loginStep").classList.add("hidden");$("otpStep").classList.remove("hidden");
-    status("OTP sent successfully. Check your phone.","success");
-  }catch(e){status("Request failed: "+e.message,"error")}
-  finally{$("sendBtn").disabled=false}
-}
-
-async function verifyOtp(){
-  const otpCode=$("otp").value.replace(/\D/g,"");
-  if(!otpCode) return status("Enter the OTP.","error");
-  $("verifyBtn").disabled=true;status("Verifying...");
-  try{
-    const res=await fetch(API.verifyOtp,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json","Clientid":"1"},body:JSON.stringify({deviceId,otpCode,referralCode:"",verificationToken})});
-    const data=await json(res);
-    if(!res.ok||!data?.data?.accessToken) throw Error(data?.message||"OTP verification failed");
-    accessToken=data.data.accessToken;
-    $("otpStep").classList.add("hidden");$("passwordStep").classList.remove("hidden");
-    status("Login successful. You can now set a password.","success");
-  }catch(e){status("Verification failed: "+e.message,"error")}
-  finally{$("verifyBtn").disabled=false}
-}
-
-async function savePassword(){
-  const password=$("password").value;
-  const confirm=$("confirmPassword").value;
-  if(password.length<8) return status("Use at least 8 characters.","error");
-  if(password!==confirm) return status("Passwords do not match.","error");
-
-  $("savePasswordBtn").disabled=true;status("Saving password...");
-  try{
-    // Password is sent directly to your authorized backend over HTTPS.
-    // It is deliberately NOT stored in localStorage or hard-coded into this HTML.
-    const res=await fetch(API.savePassword,{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+accessToken},
-      body:JSON.stringify({password})
+    const result=await api("/api/user/verifyotp",{
+      deviceId,
+      otpCode,
+      referralCode:"",
+      verificationToken:loginVerificationToken
     });
-    const data=await json(res);
-    if(!res.ok) throw Error(data?.message||"Password could not be saved");
-    $("password").value="";$("confirmPassword").value="";
-    status("Password saved successfully.","success");
-  }catch(e){
-    status("Password save failed: "+e.message+" Configure API.savePassword with your authorized backend endpoint.","error");
-  }finally{$("savePasswordBtn").disabled=false}
-}
 
-$("sendBtn").onclick=sendOtp;
-$("verifyBtn").onclick=verifyOtp;
-$("savePasswordBtn").onclick=savePassword;
+    accessToken=result?.data?.accessToken || "";
+    if(!accessToken) throw new Error(result.message || "Login was not completed.");
+
+    $("loginOtp").classList.add("hidden");
+    $("newPassword").classList.remove("hidden");
+    $("title").textContent="Set Password";
+    $("subtitle").textContent="Step 2: Send a second OTP to save your password";
+    setStatus("Login successful. Enter the password you want to save.","success");
+  }catch(e){
+    setStatus("Login verification failed: "+e.message,"error");
+  }finally{
+    $("verifyLoginOtp").disabled=false;
+  }
+};
+
+$("requestPasswordOtp").onclick=async()=>{
+  const password=$("password").value;
+  if(password.length<8) return setStatus("Password must contain at least 8 characters.","error");
+  if(!accessToken) return setStatus("Login session is missing. Please login again.","error");
+
+  $("requestPasswordOtp").disabled=true;
+  setStatus("Sending second OTP for password confirmation...");
+
+  try{
+    const result=await api("/api/user/sendresetpasswordotp",{},accessToken);
+    passwordVerificationToken=result?.data?.verificationToken || "";
+    if(!passwordVerificationToken) throw new Error(result.message || "Password OTP token was not received.");
+
+    $("newPassword").classList.add("hidden");
+    $("passwordOtp").classList.remove("hidden");
+    setStatus("Password OTP sent. Enter the second OTP to confirm your password.","success");
+  }catch(e){
+    setStatus("Could not send password OTP: "+e.message,"error");
+  }finally{
+    $("requestPasswordOtp").disabled=false;
+  }
+};
+
+$("savePassword").onclick=async()=>{
+  const otp=$("passwordOtpCode").value.replace(/\D/g,"");
+  const password=$("password").value;
+
+  if(!otp) return setStatus("Enter the password OTP.","error");
+  if(!passwordVerificationToken) return setStatus("Password verification session expired. Send a new OTP.","error");
+
+  $("savePassword").disabled=true;
+  setStatus("Verifying second OTP and saving password...");
+
+  try{
+    const result=await api("/api/user/verifyresetpassword",{
+      otp,
+      password,
+      verificationToken:passwordVerificationToken
+    },accessToken);
+
+    $("password").value="";
+    $("passwordOtpCode").value="";
+    setStatus(result.message || "Password saved successfully!","success");
+    $("savePassword").textContent="Password Saved ✓";
+  }catch(e){
+    setStatus("Password could not be saved: "+e.message,"error");
+    $("savePassword").disabled=false;
+  }
+};
 </script>
 </body>
 </html>
