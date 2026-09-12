@@ -19,7 +19,8 @@ button{border:0;cursor:pointer;font-weight:700}
 #dashboard{display:none;max-width:480px;margin:auto;background:#fff;min-height:100vh}
 .top{min-height:112px;padding:16px 18px;color:#fff;background:linear-gradient(135deg,#7b2bc0,#42116e);display:flex;gap:12px;align-items:flex-start;position:relative}
 .avatar{width:58px;height:58px;border-radius:50%;background:#eee;border:2px solid #fff;display:grid;place-items:center;font-size:31px}
-.user{font-size:18px;font-weight:700}.phone{font-size:14px;margin-top:11px}
+.user{font-size:18px;font-weight:700}.phone{font-size:14px;margin-top:11px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.copyBtn{background:#fff;color:#5b1a88;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700}
 .level{background:#eee;color:#777;padding:5px 13px;border-radius:6px;font-weight:bold;margin-left:auto}
 .logoutBtn{background:#fff;color:#5b1a88;padding:7px 10px;border-radius:7px;font-size:12px}
 .content{padding-bottom:18px;background:linear-gradient(135deg,#ead7ff,#c879e8)}
@@ -29,7 +30,7 @@ button{border:0;cursor:pointer;font-weight:700}
 .rechargeTop{position:absolute;right:12px;bottom:8px;background:#641f93;color:#fff;border-radius:20px;padding:6px 25px}
 .wallet{margin:21px 22px 0;background:#fff;border:1px solid #bf5fe7;border-radius:5px;padding:13px 15px;display:flex;align-items:center;gap:12px}
 .walletIcon{font-size:31px}.walletTitle{font-size:14px;color:#777}.total{font-size:21px;font-weight:700;color:#6d24a8;margin-top:3px}
-.refresh{margin-left:auto;background:none;font-size:25px}
+.refresh{margin-left:auto;background:none;font-size:25px;min-width:34px;min-height:34px;padding:0}.refresh:disabled{opacity:.6;cursor:wait}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:13px 22px 0}
 .stat{height:68px;background:#fff;border:1px solid #bd8ae9;border-radius:5px;padding:10px 12px}
 .stat small{display:block;color:#777;font-size:12px}.cash{font-size:21px;font-weight:700;color:#58a933;margin-top:7px}.withdraw{font-size:21px;font-weight:700;color:#4389e8;margin-top:7px}
@@ -60,7 +61,8 @@ button{border:0;cursor:pointer;font-weight:700}
 <div id="dashboard">
 <div class="top">
 <div class="avatar">👨🏻</div>
-<div><div class="user">play***</div><div class="phone">📱 : <span id="phone">**********</span></div></div>
+<div><div class="user">play***</div><div class="phone">📱 : <span id="phone">—</span>
+<button class="copyBtn" type="button" onclick="copyPhone()">Copy</button></div></div>
 <div class="level">V0</div>
 <button class="logoutBtn" onclick="logout()">Logout</button>
 </div>
@@ -76,7 +78,7 @@ button{border:0;cursor:pointer;font-weight:700}
 <div class="wallet">
 <div class="walletIcon">🛡️</div>
 <div><div class="walletTitle">TOTAL BALANCE</div><div id="total" class="total">—</div></div>
-<button class="refresh" onclick="loadBalance()">↻</button>
+<button id="refreshBtn" class="refresh" type="button" onclick="refreshBalance()">↻</button>
 </div>
 
 <div class="grid">
@@ -86,7 +88,7 @@ button{border:0;cursor:pointer;font-weight:700}
 
 <div class="actions">
 <button class="action a1" onclick="openRecharge()"><span class="ico">💼</span>Recharge</button>
-<button class="action a2"><span class="ico">🤖</span>Withdraw</button>
+<button class="action a2" type="button" onclick="openWithdraw()"><span class="ico">🤖</span>Withdraw</button>
 <button class="action a3"><span class="ico">🎮</span>Game</button>
 <button class="action a4"><span class="ico">🧾</span>Transaction</button>
 </div>
@@ -139,7 +141,8 @@ $("loginForm").addEventListener("submit",async e=>{
      throw new Error(data.message||"Login failed");
 
    accessToken=data.data.accessToken;
-   $("phone").textContent=mask(data.data.userName||username);
+   window.currentUserId=data.data.userId || "";
+   $("phone").textContent = String(data.data.userName || username);
 
    await loadBalance();
 
@@ -155,39 +158,58 @@ $("loginForm").addEventListener("submit",async e=>{
 });
 
 async function loadBalance(){
- if(!accessToken)return;
+  if(!accessToken) return false;
 
- try{
-   const res=await fetch(API+"/api/user/wallet/balance",{
-     method:"GET",
-     headers:{
-       "Accept":"application/json",
-       "Authorization":"Bearer "+accessToken,
-       "Clientid":CLIENT_ID,
-       "X-Device-Id":DEVICE_ID
-     }
-   });
+  const res = await fetch(API+"/api/user/wallet/balance?_"+Date.now(),{
+    method:"GET",
+    cache:"no-store",
+    headers:{
+      "Accept":"application/json",
+      "Authorization":"Bearer "+accessToken,
+      "Clientid":CLIENT_ID,
+      "X-Device-Id":DEVICE_ID,
+      "Cache-Control":"no-cache"
+    }
+  });
 
-   const data=await res.json();
+  const data=await res.json();
 
-   // Show exactly what the API returned.
-   if($("rawResponse")) $("rawResponse").textContent=JSON.stringify(data,null,2);
+  if(data.status!==200 || !data.data){
+    throw new Error(data.message||"Balance request failed");
+  }
 
-   if(data.status!==200 || !data.data)
-     throw new Error(data.message||"Balance request failed");
+  const d=data.data;
 
-   const d=data.data;
+  // API values are minor units: 2200 -> ₹22.00.
+  const totalBalance=Number(d.balance ?? 0)/100;
+  const withdrawable=Number(d.withdrawBalance ?? 0)/100;
 
-   // IMPORTANT: No /100 conversion and no calculated balance.
-   // These fields are displayed exactly as returned by the API.
-   $("total").textContent=d.balance ?? "—";
-   $("cash").textContent=d.balance ?? "—";
-   $("withdraw").textContent=d.withdrawBalance ?? "—";
+  $("total").textContent="₹"+totalBalance.toFixed(2);
+  $("cash").textContent="₹"+totalBalance.toFixed(2);
+  $("withdraw").textContent="₹"+withdrawable.toFixed(2);
 
- }catch(err){
-   console.error(err);
-   if($("rawResponse")) $("rawResponse").textContent="ERROR: "+(err.message||"Balance request failed");
- }
+  return true;
+}
+
+async function refreshBalance(){
+  const btn=$("refreshBtn");
+  if(!accessToken) return;
+
+  btn.disabled=true;
+  btn.textContent="↻";
+
+  try{
+    await loadBalance();
+    btn.textContent="✓";
+    setTimeout(()=>btn.textContent="↻",900);
+  }catch(err){
+    console.error(err);
+    btn.textContent="!";
+    alert(err.message||"Balance refresh failed");
+    setTimeout(()=>btn.textContent="↻",1200);
+  }finally{
+    btn.disabled=false;
+  }
 }
 
 function mask(v){
@@ -207,6 +229,171 @@ function logout(){
  $("loginBtn").disabled=false;
  $("loginBtn").textContent="Login";
 }
+
+function openWithdraw(){
+  document.getElementById("withdrawPage").style.display="block";
+  const totalText=document.getElementById("withdraw").textContent.replace("₹","").replace(/,/g,"");
+  document.getElementById("availableWithdraw").textContent=totalText || "₹0.00";
+  loadBankAccounts();
+}
+function closeWithdraw(){
+  document.getElementById("withdrawPage").style.display="none";
+}
+function openAddBank(){
+  document.getElementById("addBankModal").style.display="grid";
+  document.getElementById("bankMsg").textContent="";
+}
+function closeAddBank(){
+  document.getElementById("addBankModal").style.display="none";
+}
+async function saveBank(){
+  const msg=document.getElementById("bankMsg");
+  const accountName=document.getElementById("bankName").value.trim();
+  const accountNumber=document.getElementById("bankAccount").value.trim();
+  const ifscCode=document.getElementById("bankIfsc").value.trim().toUpperCase();
+
+  if(!accountName || !accountNumber || !ifscCode){
+    msg.textContent="Please fill all bank details.";
+    return;
+  }
+  if(!accessToken){
+    msg.textContent="Please login again.";
+    return;
+  }
+
+  msg.textContent="Saving bank account...";
+
+  try{
+    const payload={
+      accountName:accountName,
+      accountNumber:accountNumber,
+      accountType:"ACCOUNT",
+      ifscCode:ifscCode,
+      isDefault:false
+    };
+
+    const res=await fetch(API+"/api/user/bankaccount",{
+      method:"POST",
+      credentials:"include",
+      cache:"no-store",
+      headers:{
+        "Accept":"application/json",
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+accessToken,
+        "Clientid":CLIENT_ID,
+        "X-Device-Id":DEVICE_ID
+      },
+      body:JSON.stringify(payload)
+    });
+
+    let data={};
+    try{ data=await res.json(); }catch(_){}
+
+    if(!res.ok || data.status!==200){
+      console.error("Bank API:",{httpStatus:res.status,payload:payload,response:data});
+      throw new Error(data.message || ("INVALID_REQUEST ("+res.status+")"));
+    }
+
+    msg.textContent="Bank account added successfully.";
+    await loadBankAccounts();
+    setTimeout(closeAddBank,700);
+  }catch(err){
+    console.error(err);
+    msg.textContent=err.message||"Bank account request failed.";
+  }
+}
+async function loadBankAccounts(){
+  if(!accessToken)return;
+  const list=document.getElementById("bankList");
+  list.innerHTML='<div class="emptyBank">Loading bank accounts...</div>';
+
+  try{
+    const userId=(window.currentUserId || "");
+    if(!userId){
+      list.innerHTML='<div class="emptyBank">Bank account list unavailable.</div>';
+      return;
+    }
+
+    const res=await fetch(API+"/api/user/"+encodeURIComponent(userId)+"/bankaccount?_"+Date.now(),{
+      method:"GET",
+      cache:"no-store",
+      headers:{
+        "Accept":"application/json",
+        "Authorization":"Bearer "+accessToken,
+        "Clientid":CLIENT_ID,
+        "X-Device-Id":DEVICE_ID
+      }
+    });
+    const data=await res.json();
+    if(data.status!==200) throw new Error(data.message||"Could not load bank accounts");
+
+    const rows=Array.isArray(data.data)?data.data:[];
+    if(!rows.length){
+      list.innerHTML='<div class="emptyBank">No bank account added. Tap “＋ Add Bank”.</div>';
+      return;
+    }
+
+    list.innerHTML=rows.map(b=>{
+      const num=String(b.accountNumber||"");
+      const masked=num.length>4 ? "****"+num.slice(-4) : num;
+      return '<div class="bankCard"><div class="bankInfo"><b>'+escapeHtml(b.accountName||"Bank Account")+
+        '</b><small>'+escapeHtml(masked)+' · '+escapeHtml(b.ifscCode||"")+
+        '</small></div><button type="button" class="deleteBankBtn" onclick="deleteBank('+Number(b.id)+')">Delete</button></div>';
+    }).join("");
+  }catch(err){
+    console.error(err);
+    list.innerHTML='<div class="emptyBank">Could not load bank accounts.</div>';
+  }
+}
+async function deleteBank(bankId){
+  if(!bankId || !accessToken) return;
+
+  if(!confirm("Delete this bank account?")) return;
+
+  const list=document.getElementById("bankList");
+  try{
+    // The working browser request uses POST /bankaccount/{bankId}
+    // with the logged-in userId in the JSON body.
+    const userId=window.currentUserId;
+    if(!userId) throw new Error("User ID not available. Please login again.");
+
+    const res=await fetch(API+"/api/user/bankaccount/"+encodeURIComponent(bankId),{
+      method:"POST",
+      credentials:"include",
+      cache:"no-store",
+      headers:{
+        "Accept":"application/json",
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+accessToken,
+        "Clientid":CLIENT_ID,
+        "X-Device-Id":DEVICE_ID
+      },
+      body:JSON.stringify({
+        userId:Number(userId)
+      })
+    });
+
+    let data={};
+    try{data=await res.json();}catch(_){}
+
+    console.log("DELETE BANK RESPONSE:",data);
+
+    if(!res.ok || data.status!==200){
+      throw new Error(data.message||("Delete failed ("+res.status+")"));
+    }
+
+    await loadBankAccounts();
+  }catch(err){
+    console.error(err);
+    alert(err.message||"Could not delete bank account");
+    if(list) loadBankAccounts();
+  }
+}
+
+function escapeHtml(v){
+  return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+}
+
 </script>
 
 <div id="rechargeModal" class="modal">
@@ -356,6 +543,94 @@ async function paymentUnavailable(){
   }
 }
 </script>
+
+
+<div id="withdrawPage" class="withdrawPage">
+  <div class="withdrawHeader">
+    <button type="button" onclick="closeWithdraw()">←</button>
+    <b>Withdraw</b>
+  </div>
+
+  <div class="withdrawBody">
+    <div class="availableCard">
+      <div class="availableTitle">Available Withdraw Balance</div>
+      <div id="availableWithdraw" class="availableAmount">₹0.00</div>
+      <button type="button" class="recordsBtn" onclick="alert('Withdraw records')">
+        Withdraw records ›
+      </button>
+    </div>
+
+    <div class="bankSection">
+      <div class="bankTitle">Bank Accounts</div>
+      <button type="button" class="addBankBtn" onclick="openAddBank()">＋ Add Bank</button>
+    </div>
+
+    <div id="bankList" class="bankList">
+      <div class="emptyBank">No bank account loaded.</div>
+    </div>
+
+    <div class="withdrawAmounts">
+      <div class="withdrawTitle">Withdrawable Amount</div>
+      <div class="amountGrid">
+        <button type="button">₹200.00</button>
+        <button type="button">₹300.00</button>
+        <button type="button">₹500.00</button>
+        <button type="button">₹1,000.00</button>
+        <button type="button">₹2,000.00</button>
+        <button type="button">₹5,000.00</button>
+        <button type="button">₹10,000.00</button>
+        <button type="button">₹20,000.00</button>
+        <button type="button">₹50,000.00</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="addBankModal" class="modal">
+  <div class="modalCard">
+    <button type="button" class="closeBtn" onclick="closeAddBank()">×</button>
+    <h2>Add Bank</h2>
+    <label>Account Name</label>
+    <input id="bankName" type="text" placeholder="Account holder name" autocomplete="name">
+    <label>Account Number</label>
+    <input id="bankAccount" type="text" inputmode="numeric" placeholder="Bank account number">
+    <label>IFSC Code</label>
+    <input id="bankIfsc" type="text" placeholder="e.g. AIRP0000001" autocapitalize="characters">
+    <button type="button" class="saveBankBtn" onclick="saveBank()">Save Bank</button>
+    <div id="bankMsg" class="bankMsg"></div>
+  </div>
+</div>
+
+<style>
+.withdrawPage{display:none;position:fixed;inset:0;z-index:150;background:#f5e8ff;max-width:480px;margin:auto;overflow:auto}
+.withdrawHeader{height:62px;background:linear-gradient(135deg,#7b2bc0,#42116e);color:#fff;display:flex;align-items:center;gap:15px;padding:0 18px;font-size:18px}
+.withdrawHeader button{background:none;color:#fff;font-size:27px;padding:0}
+.withdrawBody{padding:12px 4px 25px}
+.availableCard{margin-bottom:12px;padding:18px;background:linear-gradient(135deg,#e58bd0,#f5c66d);border-radius:7px;position:relative}
+.availableTitle{display:inline-block;background:#4f008d;color:#fff;padding:5px 8px;border-radius:4px;font-size:12px;font-weight:bold}
+.availableAmount{font-size:24px;font-weight:700;color:#fff;margin-top:10px}
+.recordsBtn{position:absolute;right:10px;bottom:22px;background:#4f008d;color:#fff;padding:7px 10px;border-radius:5px;font-size:12px}
+.bankSection{margin-bottom:8px;padding:14px;background:#f5e2fa;border:1px solid #e2c8ed;border-radius:5px;display:flex;align-items:center}
+.bankTitle{font-size:14px;font-weight:700;color:#53128b;flex:1}
+.addBankBtn{background:linear-gradient(90deg,#7b20af,#46116d);color:#fff;border-radius:20px;padding:8px 13px}
+.bankList{padding:0 10px}
+.emptyBank{background:#fff;padding:15px;border-radius:7px;color:#777;font-size:13px;text-align:center}
+.bankCard{background:#fff;border:1px solid #dfc8ea;border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.bankInfo{flex:1;min-width:0}.bankCard b{color:#42116e}.bankCard small{display:block;color:#777;margin-top:4px}
+.deleteBankBtn{background:#d32f2f;color:#fff;padding:7px 10px;border-radius:6px;font-size:11px}
+.withdrawAmounts{margin-top:12px;background:#f8e6f7;border:1px solid #e3c8e8;border-radius:5px;padding:14px}
+.withdrawTitle{font-size:14px;font-weight:700;color:#53128b;margin-bottom:12px}
+.amountGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.amountGrid button{height:50px;background:#fff;color:#a76dcc;border-radius:5px;font-size:16px;border:0}
+.modal{display:none;position:fixed;inset:0;background:#0008;z-index:250;place-items:center;padding:20px}
+.modalCard{width:min(370px,94vw);background:#fff;border-radius:15px;padding:22px;position:relative;box-shadow:0 15px 50px #0008}
+.modalCard h2{margin:0 0 12px;color:#42116e}
+.modalCard label{display:block;color:#555;margin:10px 0 5px;font-size:13px}
+.modalCard input{width:100%;padding:12px;border:1px solid #ccc;border-radius:9px;background:#fff;color:#222}
+.closeBtn{position:absolute;right:12px;top:8px;background:none;color:#555;font-size:25px}
+.saveBankBtn{width:100%;margin-top:15px;padding:13px;border-radius:9px;background:#641f93;color:#fff}
+.bankMsg{margin-top:10px;font-size:13px;color:#b3261e}
+</style>
 
 </body>
 </html>
