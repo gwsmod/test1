@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Account Login</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1020;color:#eef2ff;font-family:Arial,sans-serif}
+.card{width:min(390px,92vw);background:#151b2f;border:1px solid #293352;border-radius:18px;padding:26px;box-shadow:0 18px 55px #0007}
+h1{margin:0 0 7px;font-size:25px}
+p{color:#9da8c5;margin:0 0 22px}
+label{display:block;font-size:13px;margin:14px 0 7px;color:#c8d0e5}
+input{width:100%;padding:13px 14px;border-radius:10px;border:1px solid #35405f;background:#0e1426;color:white;outline:0}
+input:focus{border-color:#7185ff}
+button{width:100%;margin-top:20px;padding:13px;border:0;border-radius:10px;background:#5b6ff5;color:#fff;font-weight:700;cursor:pointer}
+button:disabled{opacity:.6;cursor:not-allowed}
+#msg{margin-top:15px;padding:11px;border-radius:9px;display:none;font-size:13px;white-space:pre-wrap}
+.ok{background:#123b2c;color:#9ff0c9}
+.err{background:#421c25;color:#ffb5c0}
+.balance{display:none;margin-top:18px;padding:15px;border-radius:12px;background:#0e1426}
+.balance strong{font-size:26px}
+.small{font-size:12px;color:#8995b3;margin-top:5px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Login</h1>
+  <p>Sign in to your account</p>
+
+  <form id="loginForm">
+    <label for="username">Username</label>
+    <input id="username" autocomplete="username" required>
+
+    <label for="password">Password</label>
+    <input id="password" type="password" value="Sanju@2005" autocomplete="current-password" required>
+
+    <button id="loginBtn" type="submit">Login</button>
+  </form>
+
+  <div id="msg"></div>
+
+  <div id="balanceBox" class="balance">
+    <div>Wallet Balance</div>
+    <strong id="balance">—</strong>
+    <div class="small" id="account"></div>
+  </div>
+</div>
+
+<script>
+const API = "https://nebulaservice.xyz";
+const CLIENT_ID = 1;
+
+// Do not hard-code real credentials in this file.
+// The browser will send the credentials only when the user submits the form.
+
+const form = document.getElementById("loginForm");
+const btn = document.getElementById("loginBtn");
+const msg = document.getElementById("msg");
+const balanceBox = document.getElementById("balanceBox");
+
+function show(text, ok=false){
+  msg.textContent = text;
+  msg.className = ok ? "ok" : "err";
+  msg.style.display = "block";
+}
+
+form.addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  btn.disabled = true;
+  btn.textContent = "Logging in...";
+  msg.style.display = "none";
+  balanceBox.style.display = "none";
+
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+
+  try{
+    const loginRes = await fetch(API + "/api/user/login", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        deviceId: crypto.randomUUID(),
+        password,
+        userAgent: navigator.userAgent,
+        userName: username
+      })
+    });
+
+    const login = await loginRes.json();
+
+    if(login.status !== 200 || !login.data || !login.data.accessToken){
+      throw new Error(login.message || "Login failed");
+    }
+
+    const token = login.data.accessToken;
+
+    // Fetch wallet balance using the access token returned by login.
+    const walletRes = await fetch(API + "/api/user/wallet/balance", {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+        "Authorization": "Bearer " + token,
+        "Clientid": String(CLIENT_ID)
+      }
+    });
+
+    const wallet = await walletRes.json();
+
+    if(wallet.status !== 200 || !wallet.data){
+      throw new Error(wallet.message || "Could not load wallet balance");
+    }
+
+    show("Login successful", true);
+    document.getElementById("balance").textContent =
+      new Intl.NumberFormat("en-IN", {
+        style:"currency", currency:"INR"
+      }).format(Number(wallet.data.balance || 0));
+
+    document.getElementById("account").textContent =
+      "User ID: " + (wallet.data.userId ?? login.data.userId ?? "—");
+
+    balanceBox.style.display = "block";
+
+  }catch(err){
+    console.error(err);
+    show(err.message || "Request failed. Check the API/CORS configuration.");
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "Login";
+  }
+});
+</script>
+</body>
+</html>
