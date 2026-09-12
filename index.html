@@ -229,6 +229,41 @@ function mask(v){
  return v.length>4?v.slice(0,2)+"******"+v.slice(-2):v;
 }
 
+async function copyPhone(){
+  const phoneEl=document.getElementById("phone");
+  const phone=String(phoneEl?.textContent||"").trim();
+
+  if(!phone || phone==="—") return;
+
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(phone);
+    }else{
+      const ta=document.createElement("textarea");
+      ta.value=phone;
+      ta.setAttribute("readonly","");
+      ta.style.position="fixed";
+      ta.style.left="-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0,ta.value.length);
+      const ok=document.execCommand("copy");
+      ta.remove();
+      if(!ok) throw new Error("copy failed");
+    }
+
+    const btn=document.querySelector(".copyBtn");
+    if(btn){
+      const oldText=btn.textContent;
+      btn.textContent="Copied ✓";
+      setTimeout(()=>btn.textContent=oldText,1200);
+    }
+  }catch(err){
+    console.error("Copy phone failed:",err);
+    alert("Could not copy number. Please copy it manually.");
+  }
+}
+
 function logout(){
  // Close the confirmation popup first so it cannot remain over the login page.
  const confirmBox=document.getElementById("logoutConfirm");
