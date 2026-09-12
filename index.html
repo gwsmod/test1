@@ -29,8 +29,8 @@ button:disabled{opacity:.6;cursor:not-allowed}
   <p>Sign in to your account</p>
 
   <form id="loginForm">
-    <label for="username">Username</label>
-    <input id="username" autocomplete="username" required>
+    <label for="username">Number</label>
+    <input id="username" autocomplete="username" inputmode="numeric" value="7754942501" required>
 
     <label for="password">Password</label>
     <input id="password" type="password" value="Sanju@2005" autocomplete="current-password" required>
@@ -40,7 +40,7 @@ button:disabled{opacity:.6;cursor:not-allowed}
 
   <div id="msg"></div>
 
-  <div id="balanceBox" class="balance">
+  <button id="checkBalanceBtn" type="button" style="display:none">Check Balance</button>\n\n  <div id="balanceBox" class="balance">
     <div>Wallet Balance</div>
     <strong id="balance">—</strong>
     <div class="small" id="account"></div>
@@ -65,6 +65,37 @@ function show(text, ok=false){
   msg.style.display = "block";
 }
 
+let savedToken = null;
+
+document.getElementById("checkBalanceBtn").addEventListener("click", async ()=>{
+  if(!savedToken) return;
+  const b = document.getElementById("checkBalanceBtn");
+  b.disabled = true;
+  b.textContent = "Checking...";
+  try {
+    const res = await fetch(API + "/api/user/wallet/balance", {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+        "Authorization": "Bearer " + savedToken,
+        "Clientid": String(CLIENT_ID)
+      }
+    });
+    const data = await res.json();
+    if(data.status !== 200 || !data.data) throw new Error(data.message || "Balance check failed");
+    document.getElementById("balance").textContent =
+      new Intl.NumberFormat("en-IN", {style:"currency", currency:"INR"})
+      .format(Number(data.data.balance ?? 0) / 100);
+    balanceBox.style.display = "block";
+    show("Balance updated", true);
+  } catch(err) {
+    show(err.message || "Balance check failed");
+  } finally {
+    b.disabled = false;
+    b.textContent = "Check Balance";
+  }
+});
+
 form.addEventListener("submit", async (e)=>{
   e.preventDefault();
   btn.disabled = true;
@@ -80,10 +111,11 @@ form.addEventListener("submit", async (e)=>{
       method: "POST",
       headers: {
         "Accept": "application/json",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Clientid": String(CLIENT_ID)
       },
       body: JSON.stringify({
-        deviceId: crypto.randomUUID(),
+        deviceId: "bcdaf92fd26967885a3ec143a382bb4c",
         password,
         userAgent: navigator.userAgent,
         userName: username
@@ -96,7 +128,7 @@ form.addEventListener("submit", async (e)=>{
       throw new Error(login.message || "Login failed");
     }
 
-    const token = login.data.accessToken;
+    const token = login.data.accessToken;\n    savedToken = token;
 
     // Fetch wallet balance using the access token returned by login.
     const walletRes = await fetch(API + "/api/user/wallet/balance", {
@@ -110,7 +142,7 @@ form.addEventListener("submit", async (e)=>{
 
     const wallet = await walletRes.json();
 
-    if(wallet.status !== 200 || !wallet.data){
+    if(wallet.status !== 200 || !wallet.data || wallet.data.balance == null){
       throw new Error(wallet.message || "Could not load wallet balance");
     }
 
@@ -118,11 +150,16 @@ form.addEventListener("submit", async (e)=>{
     document.getElementById("balance").textContent =
       new Intl.NumberFormat("en-IN", {
         style:"currency", currency:"INR"
-      }).format(Number(wallet.data.balance || 0));
+      }).format(Number(wallet.data.balance ?? 0) / 100);
 
     document.getElementById("account").textContent =
       "User ID: " + (wallet.data.userId ?? login.data.userId ?? "—");
 
+    // After successful login, remove the login page and show only balance controls.
+    form.style.display = "none";
+    document.querySelector("p").style.display = "none";
+    document.querySelector("h1").textContent = "Account";
+    document.getElementById("checkBalanceBtn").style.display = "block";
     balanceBox.style.display = "block";
 
   }catch(err){
