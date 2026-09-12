@@ -7,15 +7,139 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;background:#0b1020;font-family:Arial,sans-serif}
-.login{min-height:100vh;display:grid;place-items:center;padding:20px}
-.card{width:min(390px,92vw);background:#151b2f;border:1px solid #293352;border-radius:18px;padding:26px;color:#eef2ff;box-shadow:0 18px 55px #0007}
-h1{margin:0 0 7px;font-size:25px}.card p{margin:0 0 22px;color:#9da8c5}
-label{display:block;font-size:13px;margin:14px 0 7px;color:#c8d0e5}
-input{width:100%;padding:13px 14px;border-radius:10px;border:1px solid #35405f;background:#0e1426;color:#fff;outline:0}
-button{border:0;cursor:pointer;font-weight:700}
-.loginBtn{width:100%;margin-top:20px;padding:13px;border-radius:10px;background:#5b6ff5;color:#fff}
+/* ===== IMAGE-MATCHED LOGIN DESIGN ===== */
+.login{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:28px 14px 18px;
+  background:radial-gradient(circle at 50% 0%,rgba(91,73,255,.16),transparent 34%),#060b18;
+}
+.loginShell{width:min(900px,96vw);position:relative;z-index:1}
+.loginShell:before{content:"";position:absolute;inset:-1px;border-radius:48px;
+  background:linear-gradient(90deg,#284477,#9a42ff,#2e5aa1,#284477);z-index:0}
+.card{
+  position:relative;z-index:1;width:100%;min-height:0;
+  background:radial-gradient(circle at 50% 8%,rgba(92,76,255,.16),transparent 22%),
+             linear-gradient(145deg,#111b33,#091123 55%,#0b1428);
+  border:1px solid rgba(84,116,184,.75);border-radius:46px;padding:30px 52px 34px;
+  color:#eef2ff;box-shadow:0 25px 80px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.04);
+  overflow:hidden
+}
+.card:after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
+  background:linear-gradient(90deg,transparent,#7f36ff,#d65cff,#4f7dff,transparent);
+  box-shadow:0 0 18px #a53cff}
+.loginTop{display:flex;align-items:center;gap:16px;margin:0 0 24px}
+.neonLine{flex:1;height:2px;background:linear-gradient(90deg,transparent,#6c45ff,#c856ff);box-shadow:0 0 10px #8c3cff}
+.neonLine.right{background:linear-gradient(90deg,#c856ff,#6c45ff,transparent)}
+.userOrb{
+  width:146px;height:146px;flex:0 0 146px;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle,#1b2547,#10152d 65%,#090d1d);border:3px solid #7344ff;
+  box-shadow:0 0 10px #7c39ff,0 0 35px #6e2cff,0 0 70px rgba(72,89,255,.38),inset 0 0 22px rgba(90,80,255,.3);
+  position:relative;animation:orbPulse 2.6s ease-in-out infinite
+}
+.userOrb:after{content:"✦";position:absolute;right:3px;top:-12px;color:#fff;font-size:32px;
+  text-shadow:0 0 8px #fff,0 0 20px #48a9ff;animation:starBlink 1.4s ease-in-out infinite alternate}
+.userIcon{font-size:70px;line-height:1;filter:grayscale(1) brightness(1.5)}
+.card h1{margin:4px 0 4px;text-align:center;font-size:70px;line-height:1;font-weight:900;color:#fff;text-shadow:0 4px 16px rgba(0,0,0,.45)}
+.card p.loginSub{margin:0 0 32px;text-align:center;color:#aebde9;font-size:34px}
+.formLabel{display:block;font-size:29px;margin:0 0 12px;color:#dbe5ff;font-weight:500}
+.field{position:relative;margin-bottom:34px}
+.fieldIcon{position:absolute;left:30px;top:50%;transform:translateY(-50%);font-size:39px;color:#a9b7df;z-index:2}
+.field input{
+  width:100%;height:88px;padding:0 72px 0 98px;border-radius:22px;border:3px solid #294781;
+  background:rgba(5,12,28,.62);color:#fff;outline:0;font-size:27px;
+  box-shadow:inset 0 0 22px rgba(0,0,0,.2);transition:border-color .2s,box-shadow .2s
+}
+.field input::placeholder{color:#7180a9}
+.field input:focus{border-color:#596cff;box-shadow:0 0 0 3px rgba(92,94,255,.12),0 0 20px rgba(79,69,255,.2),inset 0 0 22px rgba(0,0,0,.2)}
+.eyeBtn{position:absolute;right:23px;top:50%;transform:translateY(-50%);width:48px;height:48px;display:grid;place-items:center;background:transparent;color:#a8b4d8;font-size:31px;z-index:3}
+.loginBtn{
+  width:100%;height:88px;margin-top:2px;border-radius:22px;
+  background:linear-gradient(100deg,#4d70ff,#5364ff 48%,#4565f4);color:#fff;font-size:31px;font-weight:900;
+  box-shadow:0 9px 25px rgba(48,73,255,.35),inset 0 1px 0 rgba(255,255,255,.45);
+  border:2px solid rgba(143,164,255,.8);transition:transform .15s,filter .2s
+}
+.loginBtn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.loginBtn:active{transform:scale(.99)}
+.loginArrow{font-size:48px;vertical-align:-5px;margin-left:13px;font-weight:400}
 #msg{display:none;margin-top:15px;padding:11px;border-radius:9px;font-size:13px}
 .err{background:#421c25;color:#ffb5c0}
+
+.loginFooter{width:100%;position:relative;z-index:2;margin:-210px auto 0;padding:0 52px 24px}
+ .loginFooter .telegramCard{
+  width:100%;
+  max-width:760px;
+  margin:0 auto;
+  background:linear-gradient(145deg,rgba(18,29,55,.99),rgba(9,17,35,.99));
+  border:2px solid rgba(64,87,145,.82);
+  border-radius:28px;
+  padding:28px 32px 30px;
+  color:#eef2ff;
+  box-shadow:inset 0 0 28px rgba(0,0,0,.18),0 14px 38px rgba(0,0,0,.28);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.loginFooter .telegramTitle{
+  font-size:30px;
+  font-weight:900;
+  color:#4ed8ff;
+  text-shadow:0 0 12px rgba(27,192,255,.28);
+}
+.loginFooter .telegramText{
+  margin-top:8px;
+  color:#afbee6;
+  font-size:20px;
+  line-height:1.45;
+}
+.loginFooter .telegramBtn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin-top:18px;
+  padding:14px 34px;
+  min-width:280px;
+  border-radius:999px;
+  background:linear-gradient(135deg,#ffe047,#ffae00);
+  color:#111;
+  text-decoration:none;
+  font-size:20px;
+  font-weight:900;
+  box-shadow:0 8px 22px rgba(255,179,0,.24);
+  transition:transform .15s,filter .2s;
+}
+.loginFooter .telegramBtn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.loginFooter .telegramBtn:active{transform:scale(.98)}
+.loginFooter .devBy{position:relative;margin:28px auto 0;text-align:center;font-size:23px;font-weight:900;letter-spacing:9px;color:#d5d9e8}
+.devBy:before,.devBy:after{content:"";display:inline-block;width:24%;height:2px;margin:0 20px 8px;background:linear-gradient(90deg,transparent,#8b42ff,#cf5cff);box-shadow:0 0 10px #923cff}
+.devBy:after{background:linear-gradient(90deg,#cf5cff,#8b42ff,transparent)}
+.loginFooter .devName{display:block;margin:4px auto 0;width:max-content;font-size:78px;line-height:.95;letter-spacing:8px;font-weight:1000;
+  background:linear-gradient(180deg,#fff9b7,#ffd52e 38%,#ffb000 58%,#a75c00);-webkit-background-clip:text;background-clip:text;color:transparent;
+  -webkit-text-stroke:1px rgba(255,208,40,.65);text-shadow:0 3px 0 #704200,0 0 9px #ffd21f,0 0 24px rgba(255,210,31,.8),0 0 45px rgba(255,139,0,.35);
+  animation:devLive 1.7s ease-in-out infinite alternate}
+@keyframes devLive{from{filter:brightness(.88);transform:perspective(500px) rotateX(3deg) translateY(0) scale(1)}
+to{filter:brightness(1.45) saturate(1.18);transform:perspective(500px) rotateX(-3deg) translateY(-2px) scale(1.018)}}
+@keyframes orbPulse{0%,100%{box-shadow:0 0 10px #7c39ff,0 0 35px #6e2cff,0 0 70px rgba(72,89,255,.38),inset 0 0 22px rgba(90,80,255,.3)}
+50%{box-shadow:0 0 14px #b34cff,0 0 48px #7d35ff,0 0 90px rgba(72,89,255,.5),inset 0 0 30px rgba(90,80,255,.42)}}
+@keyframes starBlink{from{opacity:.65;transform:scale(.9)}to{opacity:1;transform:scale(1.1) rotate(10deg)}}
+
+@media(max-width:700px){
+  .login{padding:12px 8px}.loginShell{width:100%}.loginShell:before{border-radius:32px}
+  .card{min-height:auto;border-radius:30px;padding:22px 18px 220px}
+  .loginTop{margin-bottom:16px}.userOrb{width:88px;height:88px;flex-basis:88px}.userIcon{font-size:42px}
+  .userOrb:after{font-size:20px;right:-2px;top:-8px}.card h1{font-size:45px}
+  .card p.loginSub{font-size:21px;margin-bottom:24px}.formLabel{font-size:19px}
+  .field input{height:64px;font-size:18px;padding-left:64px}.fieldIcon{left:19px;font-size:28px}
+  .eyeBtn{right:10px}.loginBtn{height:64px;font-size:22px}.loginArrow{font-size:35px}
+  .loginFooter{margin:-150px auto 0;padding:0 18px 16px}
+  .loginFooter .telegramCard{grid-template-columns:1fr;gap:12px;text-align:center;padding:20px 14px}
+  .loginFooter .telegramTitle{font-size:21px}
+  .loginFooter .telegramText{font-size:15px}.loginFooter .telegramBtn{min-width:0;width:100%;font-size:16px;padding:12px 18px}
+  .loginFooter .devBy{font-size:13px;letter-spacing:4px}.devBy:before,.devBy:after{width:12%;margin:0 6px 5px}
+  .loginFooter .devName{font-size:48px;letter-spacing:5px}
+}
 #dashboard{display:none;max-width:480px;margin:auto;background:#fff;min-height:100vh}
 .top{min-height:112px;padding:16px 18px;color:#fff;background:linear-gradient(135deg,#7b2bc0,#42116e);display:flex;gap:12px;align-items:flex-start;position:relative}
 .avatar{width:58px;height:58px;border-radius:50%;background:#eee;border:2px solid #fff;display:grid;place-items:center;font-size:31px}
@@ -44,25 +168,64 @@ button{border:0;cursor:pointer;font-weight:700}
 .logoutBottom{width:100%;height:50px;border:1px solid rgba(255,255,255,.45);border-radius:15px;background:linear-gradient(135deg,#5c1590,#8d28bd);color:#fff;display:flex;align-items:center;justify-content:center;gap:9px;font-size:15px;font-weight:800;letter-spacing:.2px;box-shadow:0 7px 18px rgba(74,15,112,.28);transition:transform .15s,box-shadow .15s}
 .logoutBottom:active{transform:scale(.98);box-shadow:0 3px 10px rgba(74,15,112,.2)}
 .logoutIcon{font-size:22px;line-height:1}
+
+.loginFooter{width:min(390px,92vw);margin:14px auto 0}
+.loginFooter .telegramCard{background:#151b2f;border:1px solid #293352;border-radius:18px;padding:16px;color:#eef2ff;box-shadow:0 12px 35px #0005}
+.loginFooter .telegramTitle{font-size:15px;font-weight:800;color:#aebdff}
+.loginFooter .telegramText{margin-top:6px;color:#9da8c5;font-size:12px;line-height:1.45}
+.loginFooter .telegramBtn{display:inline-flex;align-items:center;gap:7px;margin-top:11px;padding:9px 16px;border-radius:999px;background:linear-gradient(135deg,#ffd54a,#ff9f00);color:#111;text-decoration:none;font-size:12px;font-weight:900;box-shadow:0 6px 18px #ffb30044}
+.loginFooter .devBy{margin:18px auto 0;text-align:center;font-size:11px;font-weight:900;letter-spacing:3px;color:#aeb1bd}
+.loginFooter .devName{display:inline-block;margin-left:5px;font-size:18px;letter-spacing:4px;background:linear-gradient(180deg,#fff7a8 0%,#ffd52e 42%,#a96b00 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 2px 0 #6e4300,0 0 7px #ffd21f99,0 0 18px #ffd21f66;animation:devGlow 1.8s ease-in-out infinite alternate}
+@keyframes devGlow{from{filter:brightness(.9);transform:perspective(250px) rotateX(4deg) translateY(0)}to{filter:brightness(1.35);transform:perspective(250px) rotateX(-4deg) translateY(-1px)}}
+
+
+/* Login-only content must never appear on the dashboard. */
+#dashboard .telegramCard,#dashboard .telegramLogo,#dashboard .telegramTitle,
+#dashboard .telegramText,#dashboard .telegramBtn,#dashboard .devBy,#dashboard .devName{
+  display:none!important;
+}
 </style>
 </head>
 <body>
 
 <div id="loginPage" class="login">
-<div class="card">
-<h1>Login</h1>
-<p>Sign in to your account</p>
-<form id="loginForm">
-<label for="username">Username</label>
-<input id="username" inputmode="numeric" autocomplete="username" required>
-<label for="password">Password</label>
-<input id="password" type="password" value="Sanju@2005" autocomplete="current-password" required>
-<button id="loginBtn" class="loginBtn" type="submit">Login</button>
-<div id="msg"></div>
-</form>
+  <div class="loginShell">
+    <div class="card">
+      <div class="loginTop">
+        <span class="neonLine"></span>
+        <div class="userOrb" aria-hidden="true"><span class="userIcon">👤</span></div>
+        <span class="neonLine right"></span>
+      </div>
+      <h1>Login</h1>
+      <p class="loginSub">Sign in to your account</p>
+      <form id="loginForm">
+        <label class="formLabel" for="username">Username</label>
+        <div class="field">
+          <span class="fieldIcon" aria-hidden="true">👤</span>
+          <input id="username" inputmode="numeric" autocomplete="username" placeholder="Enter username" required>
+        </div>
+        <label class="formLabel" for="password">Password</label>
+        <div class="field">
+          <span class="fieldIcon" aria-hidden="true">🔒</span>
+          <input id="password" type="password" value="Sanju@2005" autocomplete="current-password" placeholder="Enter password" required>
+          <button class="eyeBtn" id="togglePassword" type="button" aria-label="Show password">◉</button>
+        </div>
+        <button id="loginBtn" class="loginBtn" type="submit">Login <span class="loginArrow">→</span></button>
+        <div id="msg"></div>
+      </form>
+    </div>
+    <div class="loginFooter">
+      <div class="telegramCard">
+        <div>
+          <div class="telegramTitle">📱 Need Referral &amp; Number?</div>
+          <div class="telegramText">Join our Telegram channel to get referral and number information.</div>
+          <a class="telegramBtn" href="https://t.me/+sp8AOx28eHZiNjg1" target="_blank" rel="noopener noreferrer">➤ &nbsp; JOIN TELEGRAM</a>
+        </div>
+      </div>
+      <div class="devBy">DEV BY <span class="devName">SANJU</span></div>
+    </div>
+  </div>
 </div>
-</div>
-
 <div id="dashboard">
 <div class="top">
 <div class="avatar">👨🏻</div>
@@ -114,6 +277,17 @@ const DEVICE_ID="bcdaf92fd26967885a3ec143a382bb4c";
 let accessToken="";
 
 const $=id=>document.getElementById(id);
+
+const togglePassword=$("togglePassword");
+if(togglePassword){
+  togglePassword.addEventListener("click",()=>{
+    const input=$("password");
+    const visible=input.type==="text";
+    input.type=visible?"password":"text";
+    togglePassword.textContent=visible?"◉":"◌";
+    togglePassword.setAttribute("aria-label",visible?"Show password":"Hide password");
+  });
+}
 
 function showError(text){
  $("msg").textContent=text;
