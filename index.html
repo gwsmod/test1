@@ -3,137 +3,357 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Account Login</title>
+<title>Account Dashboard</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1020;color:#eef2ff;font-family:Arial,sans-serif}
-.card{width:min(390px,92vw);background:#151b2f;border:1px solid #293352;border-radius:18px;padding:26px;box-shadow:0 18px 55px #0007}
-h1{margin:0 0 7px;font-size:25px}
-p{color:#9da8c5;margin:0 0 22px}
+body{margin:0;min-height:100vh;background:#0b1020;font-family:Arial,sans-serif}
+.login{min-height:100vh;display:grid;place-items:center;padding:20px}
+.card{width:min(390px,92vw);background:#151b2f;border:1px solid #293352;border-radius:18px;padding:26px;color:#eef2ff;box-shadow:0 18px 55px #0007}
+h1{margin:0 0 7px;font-size:25px}.card p{margin:0 0 22px;color:#9da8c5}
 label{display:block;font-size:13px;margin:14px 0 7px;color:#c8d0e5}
-input{width:100%;padding:13px 14px;border-radius:10px;border:1px solid #35405f;background:#0e1426;color:white;outline:0}
-input:focus{border-color:#7185ff}
-button{width:100%;margin-top:20px;padding:13px;border:0;border-radius:10px;background:#5b6ff5;color:#fff;font-weight:700;cursor:pointer}
-button:disabled{opacity:.6;cursor:not-allowed}
-#msg{margin-top:15px;padding:11px;border-radius:9px;display:none;font-size:13px;white-space:pre-wrap}
-.ok{background:#123b2c;color:#9ff0c9}
+input{width:100%;padding:13px 14px;border-radius:10px;border:1px solid #35405f;background:#0e1426;color:#fff;outline:0}
+button{border:0;cursor:pointer;font-weight:700}
+.loginBtn{width:100%;margin-top:20px;padding:13px;border-radius:10px;background:#5b6ff5;color:#fff}
+#msg{display:none;margin-top:15px;padding:11px;border-radius:9px;font-size:13px}
 .err{background:#421c25;color:#ffb5c0}
-.balance{display:none;margin-top:18px;padding:15px;border-radius:12px;background:#0e1426}
-.balance strong{font-size:26px}
-.small{font-size:12px;color:#8995b3;margin-top:5px}
+#dashboard{display:none;max-width:480px;margin:auto;background:#fff;min-height:100vh}
+.top{min-height:112px;padding:16px 18px;color:#fff;background:linear-gradient(135deg,#7b2bc0,#42116e);display:flex;gap:12px;align-items:flex-start;position:relative}
+.avatar{width:58px;height:58px;border-radius:50%;background:#eee;border:2px solid #fff;display:grid;place-items:center;font-size:31px}
+.user{font-size:18px;font-weight:700}.phone{font-size:14px;margin-top:11px}
+.level{background:#eee;color:#777;padding:5px 13px;border-radius:6px;font-weight:bold;margin-left:auto}
+.logoutBtn{background:#fff;color:#5b1a88;padding:7px 10px;border-radius:7px;font-size:12px}
+.content{padding-bottom:18px;background:linear-gradient(135deg,#ead7ff,#c879e8)}
+.levelbox{height:120px;background:#eef2f8;position:relative;padding:13px 27px;overflow:hidden}
+.badge{font-size:44px;color:#7787a2}.progress{position:absolute;left:147px;right:26px;top:63px;height:7px;background:#fff;border-radius:10px}
+.need{position:absolute;left:27px;bottom:10px;background:#fff;padding:4px 7px;border-radius:5px;font-size:10px}
+.rechargeTop{position:absolute;right:12px;bottom:8px;background:#641f93;color:#fff;border-radius:20px;padding:6px 25px}
+.wallet{margin:21px 22px 0;background:#fff;border:1px solid #bf5fe7;border-radius:5px;padding:13px 15px;display:flex;align-items:center;gap:12px}
+.walletIcon{font-size:31px}.walletTitle{font-size:14px;color:#777}.total{font-size:21px;font-weight:700;color:#6d24a8;margin-top:3px}
+.refresh{margin-left:auto;background:none;font-size:25px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:13px 22px 0}
+.stat{height:68px;background:#fff;border:1px solid #bd8ae9;border-radius:5px;padding:10px 12px}
+.stat small{display:block;color:#777;font-size:12px}.cash{font-size:21px;font-weight:700;color:#58a933;margin-top:7px}.withdraw{font-size:21px;font-weight:700;color:#4389e8;margin-top:7px}
+.raw{margin:13px 22px;background:#101522;color:#dce5ff;border-radius:7px;padding:12px;overflow:auto}
+.rawTitle{font-size:12px;color:#aab7d5;margin-bottom:8px}.raw pre{margin:0;font:11px/1.5 Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:9px 22px 0}
+.action{height:80px;border-radius:6px;font-size:13px}.ico{display:block;font-size:29px;margin-bottom:5px}
+.a1{background:#9ee5f4}.a2{background:#b7f287}.a3{background:#fff09a}.a4{background:#e8c8fa}
 </style>
 </head>
 <body>
+
+<div id="loginPage" class="login">
 <div class="card">
-  <h1>Login</h1>
-  <p>Sign in to your account</p>
+<h1>Login</h1>
+<p>Sign in to your account</p>
+<form id="loginForm">
+<label for="username">Username</label>
+<input id="username" inputmode="numeric" autocomplete="username" required>
+<label for="password">Password</label>
+<input id="password" type="password" value="Sanju@2005" autocomplete="current-password" required>
+<button id="loginBtn" class="loginBtn" type="submit">Login</button>
+<div id="msg"></div>
+</form>
+</div>
+</div>
 
-  <form id="loginForm">
-    <label for="username">Username</label>
-    <input id="username" autocomplete="username" required>
+<div id="dashboard">
+<div class="top">
+<div class="avatar">👨🏻</div>
+<div><div class="user">play***</div><div class="phone">📱 : <span id="phone">**********</span></div></div>
+<div class="level">V0</div>
+<button class="logoutBtn" onclick="logout()">Logout</button>
+</div>
 
-    <label for="password">Password</label>
-    <input id="password" type="password" value="Sanju@2005" autocomplete="current-password" required>
+<div class="content">
+<div class="levelbox">
+<div class="badge">⬡</div>
+<div class="progress"></div>
+<div class="need">Recharge ₹200 to reach level VIP1</div>
+<button type="button" class="rechargeTop" onclick="openRecharge()">Recharge</button>
+</div>
 
-    <button id="loginBtn" type="submit">Login</button>
-  </form>
+<div class="wallet">
+<div class="walletIcon">🛡️</div>
+<div><div class="walletTitle">TOTAL BALANCE</div><div id="total" class="total">—</div></div>
+<button class="refresh" onclick="loadBalance()">↻</button>
+</div>
 
-  <div id="msg"></div>
+<div class="grid">
+<div class="stat"><small>Cash Balance</small><div id="cash" class="cash">—</div></div>
+<div class="stat"><small>Withdrawable Amount</small><div id="withdraw" class="withdraw">—</div></div>
+</div>
 
-  <div id="balanceBox" class="balance">
-    <div>Wallet Balance</div>
-    <strong id="balance">—</strong>
-    <div class="small" id="account"></div>
-  </div>
+<div class="actions">
+<button class="action a1"><span class="ico">💼</span>Recharge</button>
+<button class="action a2"><span class="ico">🤖</span>Withdraw</button>
+<button class="action a3"><span class="ico">🎮</span>Game</button>
+<button class="action a4"><span class="ico">🧾</span>Transaction</button>
+</div>
+</div>
 </div>
 
 <script>
-const API = "https://nebulaservice.xyz";
-const CLIENT_ID = 1;
+const API="https://nebulaservice.xyz";
+const CLIENT_ID="1";
+const DEVICE_ID="bcdaf92fd26967885a3ec143a382bb4c";
+let accessToken="";
 
-// Do not hard-code real credentials in this file.
-// The browser will send the credentials only when the user submits the form.
+const $=id=>document.getElementById(id);
 
-const form = document.getElementById("loginForm");
-const btn = document.getElementById("loginBtn");
-const msg = document.getElementById("msg");
-const balanceBox = document.getElementById("balanceBox");
-
-function show(text, ok=false){
-  msg.textContent = text;
-  msg.className = ok ? "ok" : "err";
-  msg.style.display = "block";
+function showError(text){
+ $("msg").textContent=text;
+ $("msg").className="err";
+ $("msg").style.display="block";
 }
 
-form.addEventListener("submit", async (e)=>{
-  e.preventDefault();
-  btn.disabled = true;
-  btn.textContent = "Logging in...";
-  msg.style.display = "none";
-  balanceBox.style.display = "none";
+$("loginForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ $("loginBtn").disabled=true;
+ $("loginBtn").textContent="Logging in...";
+ $("msg").style.display="none";
 
-  const username = document.getElementById("username").value.trim();
-  const password = document.getElementById("password").value;
+ try{
+   const username=$("username").value.trim();
+   const password=$("password").value;
+
+   const res=await fetch(API+"/api/user/login",{
+     method:"POST",
+     headers:{
+       "Accept":"application/json",
+       "Content-Type":"application/json",
+       "Clientid":CLIENT_ID,
+       "X-Device-Id":DEVICE_ID
+     },
+     body:JSON.stringify({
+       deviceId:DEVICE_ID,
+       password:password,
+       userAgent:navigator.userAgent,
+       userName:username
+     })
+   });
+
+   const data=await res.json();
+
+   if(data.status!==200 || !data.data?.accessToken)
+     throw new Error(data.message||"Login failed");
+
+   accessToken=data.data.accessToken;
+   $("phone").textContent=mask(data.data.userName||username);
+
+   await loadBalance();
+
+   $("loginPage").style.display="none";
+   $("dashboard").style.display="block";
+ }catch(err){
+   console.error(err);
+   showError(err.message||"INVALID_REQUEST");
+ }finally{
+   $("loginBtn").disabled=false;
+   $("loginBtn").textContent="Login";
+ }
+});
+
+async function loadBalance(){
+ if(!accessToken)return;
+
+ try{
+   const res=await fetch(API+"/api/user/wallet/balance",{
+     method:"GET",
+     headers:{
+       "Accept":"application/json",
+       "Authorization":"Bearer "+accessToken,
+       "Clientid":CLIENT_ID,
+       "X-Device-Id":DEVICE_ID
+     }
+   });
+
+   const data=await res.json();
+
+   // Show exactly what the API returned.
+   if($("rawResponse")) $("rawResponse").textContent=JSON.stringify(data,null,2);
+
+   if(data.status!==200 || !data.data)
+     throw new Error(data.message||"Balance request failed");
+
+   const d=data.data;
+
+   // IMPORTANT: No /100 conversion and no calculated balance.
+   // These fields are displayed exactly as returned by the API.
+   $("total").textContent=d.balance ?? "—";
+   $("cash").textContent=d.balance ?? "—";
+   $("withdraw").textContent=d.withdrawBalance ?? "—";
+
+ }catch(err){
+   console.error(err);
+   if($("rawResponse")) $("rawResponse").textContent="ERROR: "+(err.message||"Balance request failed");
+ }
+}
+
+function mask(v){
+ v=String(v||"");
+ return v.length>4?v.slice(0,2)+"******"+v.slice(-2):v;
+}
+
+function logout(){
+ accessToken="";
+ $("dashboard").style.display="none";
+ $("loginPage").style.display="grid";
+ if($("rawResponse")) $("rawResponse").textContent="Waiting...";
+ $("total").textContent="—";
+ $("cash").textContent="—";
+ $("withdraw").textContent="—";
+ $("msg").style.display="none";
+ $("loginBtn").disabled=false;
+ $("loginBtn").textContent="Login";
+}
+</script>
+
+<div id="rechargeModal" class="modal">
+  <div class="modalCard">
+    <button class="closeBtn" onclick="closeRecharge()">×</button>
+    <h2>Recharge</h2>
+    <p>Enter amount in paise (20000 = ₹200)</p>
+    <input id="rechargeAmount" type="number" min="1" step="1" placeholder="Amount (paise), e.g. 20000 = ₹200">
+    <button class="payBtn" onclick="startRecharge()">Continue</button>
+    <div id="rechargeMsg"></div>
+  </div>
+</div>
+<style>
+.modal{display:none;position:fixed;inset:0;background:#0008;z-index:99;place-items:center;padding:20px}
+.modalCard{width:min(360px,92vw);background:#fff;border-radius:15px;padding:22px;position:relative;box-shadow:0 15px 50px #0008}
+.modalCard h2{margin:0 0 5px;color:#42116e}.modalCard p{margin:0 0 15px;color:#777}
+.modalCard input{width:100%;padding:13px;border:1px solid #ccc;border-radius:9px;color:#222;background:#fff}
+.closeBtn{position:absolute;right:12px;top:8px;background:none;font-size:25px;color:#555}
+.payBtn{width:100%;margin-top:12px;padding:13px;border-radius:9px;background:#641f93;color:#fff}
+#rechargeMsg{margin-top:12px;font-size:13px;color:#b3261e}
+</style>
+<script>
+function openRecharge(){
+  document.getElementById("rechargeModal").style.display="grid";
+  document.getElementById("rechargeAmount").focus();
+}
+function closeRecharge(){
+  document.getElementById("rechargeModal").style.display="none";
+}
+function startRecharge(){
+  const amount=Number(document.getElementById("rechargeAmount").value);
+  const msg=document.getElementById("rechargeMsg");
+  if(!amount || amount<=0){
+    msg.textContent="Enter a valid amount.";
+    return;
+  }
+  // Exact payment API payload was not provided, so no fake transaction is sent.
+  // Open the deposit page inside the app.
+  document.getElementById("rechargeModal").style.display="none";
+  document.getElementById("depositPage").style.display="block";
+  document.getElementById("depositAmount").textContent="₹"+(amount/100).toFixed(2);
+  document.getElementById("depositMsg").textContent="";
+  window.scrollTo(0,0);
+}
+</script>
+
+
+<div id="depositPage" class="depositPage">
+  <div class="depositHeader">
+    <button onclick="closeDeposit()">←</button>
+    <b>Deposit</b>
+  </div>
+  <div class="depositCard">
+    <div class="depositLabel">Recharge Amount</div>
+    <div id="depositAmount" class="depositAmount">₹0.00</div>
+    <div class="depositNotice">Choose your payment method to continue.</div>
+    <button class="depositOption" onclick="paymentUnavailable()">
+      <span>💳</span><span><b>Online Payment</b><small>Continue to payment</small></span><span>›</span>
+    </button>
+    <div id="depositMsg" class="depositMsg"></div>
+  </div>
+</div>
+<style>
+.depositPage{display:none;position:fixed;inset:0;z-index:200;background:#f5e8ff;max-width:480px;margin:auto}
+.depositHeader{height:64px;background:linear-gradient(135deg,#7b2bc0,#42116e);color:#fff;display:flex;align-items:center;padding:0 18px;gap:15px;font-size:18px}
+.depositHeader button{background:none;color:#fff;font-size:27px;padding:0}
+.depositCard{margin:18px;background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 25px #0002}
+.depositLabel{font-size:13px;color:#777}.depositAmount{font-size:30px;font-weight:700;color:#641f93;margin:7px 0 18px}
+.depositNotice{font-size:13px;color:#777;margin-bottom:14px}
+.depositOption{width:100%;display:flex;align-items:center;gap:13px;padding:15px;border:1px solid #ddd;border-radius:10px;background:#fff;text-align:left;color:#333}
+.depositOption span:first-child{font-size:27px}.depositOption span:nth-child(2){flex:1}.depositOption small{display:block;color:#888;margin-top:4px}
+.depositMsg{margin-top:13px;color:#b3261e;font-size:13px}
+</style>
+<script>
+function closeDeposit(){
+  document.getElementById("depositPage").style.display="none";
+}
+async function paymentUnavailable(){
+  const msg=document.getElementById("depositMsg");
+  msg.textContent="Creating payment...";
+
+  const amountText=document.getElementById("depositAmount").textContent
+    .replace("₹","").replace(/,/g,"").trim();
+  const rupees=Number(amountText);
+  const amount=Math.round(rupees*100);
+
+  if(!accessToken){
+    msg.textContent="Please login again.";
+    return;
+  }
 
   try{
-    const loginRes = await fetch(API + "/api/user/login", {
-      method: "POST",
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "Clientid": String(CLIENT_ID)
+    const res=await fetch(API+"/api/user/payment/33314",{
+      method:"POST",
+      headers:{
+        "Accept":"application/json",
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+accessToken,
+        "Clientid":CLIENT_ID,
+        "X-Device-Id":DEVICE_ID
       },
-      body: JSON.stringify({
-        deviceId: "bcdaf92fd26967885a3ec143a382bb4c",
-        password,
-        userAgent: navigator.userAgent,
-        userName: username
+      body:JSON.stringify({
+        amount:amount,
+        channelId:1,
+        language:"en_US"
       })
     });
 
-    const login = await loginRes.json();
+    const data=await res.json();
+    console.log("PAYMENT API RESPONSE:",data);
 
-    if(login.status !== 200 || !login.data || !login.data.accessToken){
-      throw new Error(login.message || "Login failed");
+    if(data.status!==200){
+      throw new Error(data.message||"Payment creation failed");
     }
 
-    const token = login.data.accessToken;
+    // Find a returned payment/checkout URL at any nesting level.
+    function findPaymentUrl(x){
+      if(!x) return null;
+      if(typeof x==="string" && /^https?:\/\//i.test(x)) return x;
+      if(typeof x!=="object") return null;
 
-    // Fetch wallet balance using the access token returned by login.
-    const walletRes = await fetch(API + "/api/user/wallet/balance", {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-        "Authorization": "Bearer " + token,
-        "Clientid": String(CLIENT_ID)
+      const preferred=["url","payUrl","paymentUrl","redirectUrl","checkoutUrl","payment_url","pay_url","redirect_url","checkout_url"];
+      for(const k of preferred){
+        if(typeof x[k]==="string" && /^https?:\/\//i.test(x[k])) return x[k];
       }
-    });
-
-    const wallet = await walletRes.json();
-
-    if(wallet.status !== 200 || !wallet.data){
-      throw new Error(wallet.message || "Could not load wallet balance");
+      for(const k of Object.keys(x)){
+        const found=findPaymentUrl(x[k]);
+        if(found) return found;
+      }
+      return null;
     }
 
-    show("Login successful", true);
-    document.getElementById("balance").textContent =
-      new Intl.NumberFormat("en-IN", {
-        style:"currency", currency:"INR"
-      }).format(Number(wallet.data.balance || 0));
+    const paymentUrl=findPaymentUrl(data);
 
-    document.getElementById("account").textContent =
-      "User ID: " + (wallet.data.userId ?? login.data.userId ?? "—");
+    if(paymentUrl){
+      msg.textContent="Opening payment page...";
+      window.location.assign(paymentUrl);
+      return;
+    }
 
-    balanceBox.style.display = "block";
-
+    msg.textContent="Payment was created, but the API did not return a payment URL. Open DevTools → Console to see the response.";
   }catch(err){
     console.error(err);
-    show(err.message || "Request failed. Check the API/CORS configuration.");
-  }finally{
-    btn.disabled = false;
-    btn.textContent = "Login";
+    msg.textContent=err.message||"Payment request failed.";
   }
-});
+}
 </script>
+
 </body>
 </html>
