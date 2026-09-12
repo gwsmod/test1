@@ -39,6 +39,11 @@ button{border:0;cursor:pointer;font-weight:700}
 .actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:9px 22px 0}
 .action{height:80px;border-radius:6px;font-size:13px}.ico{display:block;font-size:29px;margin-bottom:5px}
 .a1{background:#9ee5f4}.a2{background:#b7f287}.a3{background:#fff09a}.a4{background:#e8c8fa}
+
+.logoutWrap{padding:16px 22px 22px;background:linear-gradient(135deg,#d98af0,#b66ce2);text-align:center}
+.logoutBottom{width:100%;height:50px;border:1px solid rgba(255,255,255,.45);border-radius:15px;background:linear-gradient(135deg,#5c1590,#8d28bd);color:#fff;display:flex;align-items:center;justify-content:center;gap:9px;font-size:15px;font-weight:800;letter-spacing:.2px;box-shadow:0 7px 18px rgba(74,15,112,.28);transition:transform .15s,box-shadow .15s}
+.logoutBottom:active{transform:scale(.98);box-shadow:0 3px 10px rgba(74,15,112,.2)}
+.logoutIcon{font-size:22px;line-height:1}
 </style>
 </head>
 <body>
@@ -64,7 +69,7 @@ button{border:0;cursor:pointer;font-weight:700}
 <div><div class="user">play***</div><div class="phone">📱 : <span id="phone">—</span>
 <button class="copyBtn" type="button" onclick="copyPhone()">Copy</button></div></div>
 <div class="level">V0</div>
-<button class="logoutBtn" onclick="logout()">Logout</button>
+
 </div>
 
 <div class="content">
@@ -90,8 +95,15 @@ button{border:0;cursor:pointer;font-weight:700}
 <button class="action a1" onclick="openRecharge()"><span class="ico">💼</span>Recharge</button>
 <button class="action a2" type="button" onclick="openWithdraw()"><span class="ico">🤖</span>Withdraw</button>
 <button class="action a3"><span class="ico">🎮</span>Game</button>
-<button class="action a4"><span class="ico">🧾</span>Transaction</button>
+<button class="action a4" type="button" onclick="openTransactions()"><span class="ico">🧾</span>Transaction</button>
 </div>
+</div>
+
+<div class="logoutWrap">
+  <button class="logoutBottom" type="button" onclick="confirmLogout()">
+    <span class="logoutIcon">⎋</span>
+    <span>Logout</span>
+  </button>
 </div>
 </div>
 
@@ -218,7 +230,12 @@ function mask(v){
 }
 
 function logout(){
+ // Close the confirmation popup first so it cannot remain over the login page.
+ const confirmBox=document.getElementById("logoutConfirm");
+ if(confirmBox) confirmBox.style.display="none";
+
  accessToken="";
+ window.currentUserId="";
  $("dashboard").style.display="none";
  $("loginPage").style.display="grid";
  if($("rawResponse")) $("rawResponse").textContent="Waiting...";
@@ -228,6 +245,10 @@ function logout(){
  $("msg").style.display="none";
  $("loginBtn").disabled=false;
  $("loginBtn").textContent="Login";
+
+ // Reset login fields for the next session.
+ $("username").value="";
+ $("password").value="Sanju@2005";
 }
 
 function openWithdraw(){
@@ -394,6 +415,86 @@ function escapeHtml(v){
   return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 }
 
+
+function openTransactions(){
+  document.getElementById("transactionPage").style.display="block";
+  loadTransactions();
+}
+function closeTransactions(){
+  document.getElementById("transactionPage").style.display="none";
+}
+async function loadTransactions(){
+  const list=document.getElementById("transactionList");
+  const month=document.getElementById("transactionMonth");
+  if(!accessToken || !window.currentUserId){
+    list.innerHTML='<div class="transactionEmpty">Please login again.</div>';
+    return;
+  }
+
+  list.innerHTML='<div class="transactionEmpty">Loading transactions...</div>';
+
+  const now=new Date();
+  const y=now.getFullYear(), m=now.getMonth();
+  const pad=n=>String(n).padStart(2,"0");
+  const startDate=y+"-"+pad(m+1)+"-01T00:00:00.000Z";
+  const lastDay=new Date(Date.UTC(y,m+1,0)).getUTCDate();
+  const endDate=y+"-"+pad(m+1)+"-"+pad(lastDay)+"T23:59:59.999Z";
+
+  month.textContent=now.toLocaleString("en-US",{month:"short",year:"numeric"});
+
+  try{
+    const res=await fetch(API+"/api/user/wallet/0/transactions?pageSize=12",{
+      method:"POST",
+      credentials:"include",
+      cache:"no-store",
+      headers:{
+        "Accept":"application/json",
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+accessToken,
+        "Clientid":CLIENT_ID,
+        "X-Device-Id":DEVICE_ID
+      },
+      body:JSON.stringify({
+        startDate:startDate,
+        endDate:endDate,
+        userId:Number(window.currentUserId)
+      })
+    });
+
+    const data=await res.json();
+    if(!res.ok || data.status!==200) throw new Error(data.message||"Could not load transactions");
+
+    const rows=Array.isArray(data?.data?.data)?data.data.data:[];
+    if(!rows.length){
+      list.innerHTML='<div class="transactionEmpty">No transactions found.</div>';
+      return;
+    }
+
+    list.innerHTML=rows.map(tx=>{
+      const type=String(tx.transactionType||"").toUpperCase();
+      const amount=Number(tx.amount||0)/100;
+      const balance=Number(tx.balance||0)/100;
+      const sign=type==="DEBIT"?"-":"+"; 
+      const cls=type==="DEBIT"?"debit":"credit";
+      const date=tx.createdAt?new Date(tx.createdAt).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"}):"—";
+      return '<div class="txCard">'+
+        '<div class="txTop"><div><div class="txDate">'+escapeHtml(date)+'</div><div class="txId">ID: '+escapeHtml(tx.id||"—")+'</div></div>'+
+        '<div class="txPay">Payment :<div class="'+cls+'">'+sign+"₹"+amount.toFixed(2)+'</div></div></div>'+
+        '<div class="txRows">'+
+        '<div class="txRow"><span>Amount</span><span>₹'+amount.toFixed(2)+'</span></div>'+
+        '<div class="txRow"><span>Balance After</span><span>₹'+balance.toFixed(2)+'</span></div>'+
+        '<div class="txRow"><span>Type</span><span class="'+cls+'">'+escapeHtml(type||"—")+'</span></div>'+
+        '<div class="txRow"><span>Game Name</span><span>'+escapeHtml(tx.gameName||"—")+'</span></div>'+
+        '<div class="txRow"><span>Period Id</span><span>'+escapeHtml(tx.periodId||"—")+'</span></div>'+
+        '<div class="txRow"><span>Description</span><span>'+escapeHtml(tx.description||"—")+'</span></div>'+
+        '</div></div>';
+    }).join("");
+  }catch(err){
+    console.error(err);
+    list.innerHTML='<div class="transactionEmpty">'+escapeHtml(err.message||"Transaction request failed.")+'</div>';
+  }
+}
+
 </script>
 
 <div id="rechargeModal" class="modal">
@@ -423,76 +524,28 @@ function openRecharge(){
 function closeRecharge(){
   document.getElementById("rechargeModal").style.display="none";
 }
-function startRecharge(){
-  const amount=Number(document.getElementById("rechargeAmount").value);
+async function startRecharge(){
+  const amountRupees=Number(document.getElementById("rechargeAmount").value);
   const msg=document.getElementById("rechargeMsg");
-  if(!amount || amount<=0){
+
+  if(!Number.isFinite(amountRupees) || amountRupees<=0){
     msg.textContent="Enter a valid amount.";
     return;
   }
-  // Exact payment API payload was not provided, so no fake transaction is sent.
-  // Open the deposit page inside the app.
-  document.getElementById("rechargeModal").style.display="none";
-  document.getElementById("depositPage").style.display="block";
-  document.getElementById("depositAmount").textContent="₹"+Number(amount).toFixed(2);
-  document.getElementById("depositMsg").textContent="";
-  window.scrollTo(0,0);
-}
-</script>
-
-
-<div id="depositPage" class="depositPage">
-  <div class="depositHeader">
-    <button onclick="closeDeposit()">←</button>
-    <b>Deposit</b>
-  </div>
-  <div class="depositCard">
-    <div class="depositLabel">Recharge Amount</div>
-    <div id="depositAmount" class="depositAmount">₹0.00</div>
-    <div class="depositNotice">Choose your payment method to continue.</div>
-    <button class="depositOption" onclick="paymentUnavailable()">
-      <span>💳</span><span><b>Online Payment</b><small>Continue to payment</small></span><span>›</span>
-    </button>
-    <div id="depositMsg" class="depositMsg"></div>
-  </div>
-</div>
-<style>
-.depositPage{display:none;position:fixed;inset:0;z-index:200;background:#f5e8ff;max-width:480px;margin:auto}
-.depositHeader{height:64px;background:linear-gradient(135deg,#7b2bc0,#42116e);color:#fff;display:flex;align-items:center;padding:0 18px;gap:15px;font-size:18px}
-.depositHeader button{background:none;color:#fff;font-size:27px;padding:0}
-.depositCard{margin:18px;background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 25px #0002}
-.depositLabel{font-size:13px;color:#777}.depositAmount{font-size:30px;font-weight:700;color:#641f93;margin:7px 0 18px}
-.depositNotice{font-size:13px;color:#777;margin-bottom:14px}
-.depositOption{width:100%;display:flex;align-items:center;gap:13px;padding:15px;border:1px solid #ddd;border-radius:10px;background:#fff;text-align:left;color:#333}
-.depositOption span:first-child{font-size:27px}.depositOption span:nth-child(2){flex:1}.depositOption small{display:block;color:#888;margin-top:4px}
-.depositMsg{margin-top:13px;color:#b3261e;font-size:13px}
-</style>
-<script>
-function closeDeposit(){
-  document.getElementById("depositPage").style.display="none";
-}
-async function paymentUnavailable(){
-  const msg=document.getElementById("depositMsg");
-  const inputAmount=Number(document.getElementById("rechargeAmount").value);
-
-  if(!Number.isFinite(inputAmount) || inputAmount<=0){
-    msg.textContent="Enter a valid recharge amount.";
-    return;
-  }
-
-  // User enters rupees. API requires paise:
-  // 500 -> 50000, 225 -> 22500.
-  const amount=Math.round(inputAmount*100);
-  const displayAmount=(amount/100).toFixed(2);
-
-  msg.textContent="Creating payment for ₹"+displayAmount+"...";
-
   if(!accessToken){
     msg.textContent="Please login again.";
     return;
   }
 
+  const amount=Math.round(amountRupees*100);
+  msg.textContent="Creating payment...";
+
   try{
+    /*
+      Direct flow:
+      Recharge -> Confirm -> Payment API -> original payment URL.
+      The intermediate Deposit/Online Payment selection screen is skipped.
+    */
     const res=await fetch(API+"/api/user/payment/33314",{
       method:"POST",
       headers:{
@@ -512,17 +565,22 @@ async function paymentUnavailable(){
     const data=await res.json();
     console.log("PAYMENT API RESPONSE:",data);
 
-    if(data.status!==200){
-      throw new Error(data.message||"Payment creation failed");
+    if(!res.ok || data.status!==200){
+      throw new Error(data.message||("Payment creation failed ("+res.status+")"));
     }
 
     function findPaymentUrl(x){
       if(!x)return null;
       if(typeof x==="string" && /^https?:\/\//i.test(x))return x;
       if(typeof x!=="object")return null;
-      for(const k of ["url","payUrl","paymentUrl","redirectUrl","checkoutUrl","payment_url","pay_url","redirect_url","checkout_url"]){
-        if(typeof x[k]==="string" && /^https?:\/\//i.test(x[k]))return x[k];
+
+      for(const k of [
+        "url","payUrl","paymentUrl","redirectUrl","checkoutUrl",
+        "payment_url","pay_url","redirect_url","checkout_url"
+      ]){
+        if(typeof x[k]==="string" && /^https?:\/\//i.test(x[k])) return x[k];
       }
+
       for(const k of Object.keys(x)){
         const u=findPaymentUrl(x[k]);
         if(u)return u;
@@ -531,12 +589,14 @@ async function paymentUnavailable(){
     }
 
     const paymentUrl=findPaymentUrl(data);
-    if(paymentUrl){
-      msg.textContent="Opening payment page...";
-      window.location.href=paymentUrl;
-    }else{
-      msg.textContent="Payment created, but no payment URL was returned.";
+
+    if(!paymentUrl){
+      throw new Error("Payment created, but no payment URL was returned by the API.");
     }
+
+    msg.textContent="Opening payment...";
+    window.location.href=paymentUrl;
+
   }catch(err){
     console.error(err);
     msg.textContent=err.message||"Payment request failed.";
@@ -631,6 +691,71 @@ async function paymentUnavailable(){
 .saveBankBtn{width:100%;margin-top:15px;padding:13px;border-radius:9px;background:#641f93;color:#fff}
 .bankMsg{margin-top:10px;font-size:13px;color:#b3261e}
 </style>
+
+
+<div id="transactionPage" class="transactionPage">
+  <div class="transactionHeader">
+    <button type="button" onclick="closeTransactions()">←</button>
+    <b>My Transactions</b>
+  </div>
+
+
+  <div class="transactionMonth" id="transactionMonth">Loading...</div>
+  <div id="transactionList" class="transactionList">
+    <div class="transactionEmpty">Loading transactions...</div>
+  </div>
+</div>
+<style>
+.transactionPage{display:none;position:fixed;inset:0;z-index:180;background:#f7f4fb;max-width:480px;margin:auto;overflow:auto}
+.transactionHeader{height:59px;background:linear-gradient(135deg,#7b2bc0,#42116e);color:#fff;display:flex;align-items:center;justify-content:center;position:relative;font-size:18px}
+.transactionHeader button{position:absolute;left:14px;background:none;color:#fff;font-size:28px;padding:0}
+
+
+.transactionTabs{display:flex;overflow-x:auto;background:#fff;border-bottom:1px solid #ddd}
+.transactionTabs button{white-space:nowrap;background:#fff;color:#4d087c;padding:10px 16px;border-radius:0;font-size:12px}
+.transactionTabs .active{background:#641f93;color:#fff;border-radius:7px;margin:3px}
+.transactionMonth{margin:10px 12px;padding:8px 12px;background:#fff;color:#4d087c;font-weight:700;border-radius:5px}
+.transactionList{padding:0 12px 20px}.transactionEmpty{background:#fff;padding:20px;text-align:center;color:#777;border-radius:6px}
+.txCard{background:#fff;margin-bottom:10px;border-radius:5px;box-shadow:0 2px 6px #0002;overflow:hidden}
+.txTop{padding:12px 16px;background:#f5f6ff;display:flex;justify-content:space-between;gap:10px}
+.txDate{color:#18206c;font-size:12px}.txId{color:#56608d;font-size:10px;margin-top:5px}
+.txPay{text-align:right;font-size:10px}.credit{color:#009b75;font-weight:700}.debit{color:red;font-weight:700}
+.txRows{padding:9px 16px}.txRow{display:flex;justify-content:space-between;gap:15px;padding:9px 0;border-bottom:1px solid #ddd;font-size:12px;color:#26105c}
+.txRow:last-child{border-bottom:0}.txRow span:last-child{text-align:right;max-width:70%}
+</style>
+
+
+<div id="logoutConfirm" class="logoutConfirm">
+  <div class="logoutConfirmCard">
+    <div class="logoutConfirmIcon">⎋</div>
+    <h3>Logout?</h3>
+    <p>Are you sure you want to logout from this account?</p>
+    <div class="logoutConfirmActions">
+      <button type="button" class="cancelLogout" onclick="closeLogoutConfirm()">Cancel</button>
+      <button type="button" class="yesLogout" onclick="logout()">Logout</button>
+    </div>
+  </div>
+</div>
+<style>
+.logoutConfirm{display:none;position:fixed;inset:0;z-index:999;background:rgba(12,5,25,.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px}
+.logoutConfirmCard{width:min(340px,92vw);background:#fff;border-radius:20px;padding:25px 22px;text-align:center;box-shadow:0 20px 60px #0008;animation:logoutPop .18s ease-out}
+.logoutConfirmIcon{width:54px;height:54px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#7b20af,#4b126f);color:#fff;font-size:28px}
+.logoutConfirmCard h3{margin:0;color:#42116e;font-size:21px}
+.logoutConfirmCard p{margin:8px 0 20px;color:#777;font-size:13px}
+.logoutConfirmActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.logoutConfirmActions button{height:44px;border-radius:11px;font-weight:800;font-size:13px}
+.cancelLogout{background:#f0e9f5;color:#5b1a88}
+.yesLogout{background:linear-gradient(135deg,#7b20af,#4b126f);color:#fff}
+@keyframes logoutPop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+</style>
+<script>
+function confirmLogout(){
+  document.getElementById("logoutConfirm").style.display="flex";
+}
+function closeLogoutConfirm(){
+  document.getElementById("logoutConfirm").style.display="none";
+}
+</script>
 
 </body>
 </html>
