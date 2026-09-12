@@ -85,7 +85,7 @@ button{border:0;cursor:pointer;font-weight:700}
 </div>
 
 <div class="actions">
-<button class="action a1"><span class="ico">💼</span>Recharge</button>
+<button class="action a1" onclick="openRecharge()"><span class="ico">💼</span>Recharge</button>
 <button class="action a2"><span class="ico">🤖</span>Withdraw</button>
 <button class="action a3"><span class="ico">🎮</span>Game</button>
 <button class="action a4"><span class="ico">🧾</span>Transaction</button>
@@ -213,8 +213,8 @@ function logout(){
   <div class="modalCard">
     <button class="closeBtn" onclick="closeRecharge()">×</button>
     <h2>Recharge</h2>
-    <p>Enter amount in paise (20000 = ₹200)</p>
-    <input id="rechargeAmount" type="number" min="1" step="1" placeholder="Amount (paise), e.g. 20000 = ₹200">
+    <p>Enter recharge amount (₹)</p>
+    <input id="rechargeAmount" type="number" min="1" step="1" placeholder="Enter amount, e.g. 500">
     <button class="payBtn" onclick="startRecharge()">Continue</button>
     <div id="rechargeMsg"></div>
   </div>
@@ -247,7 +247,7 @@ function startRecharge(){
   // Open the deposit page inside the app.
   document.getElementById("rechargeModal").style.display="none";
   document.getElementById("depositPage").style.display="block";
-  document.getElementById("depositAmount").textContent="₹"+(amount/100).toFixed(2);
+  document.getElementById("depositAmount").textContent="₹"+Number(amount).toFixed(2);
   document.getElementById("depositMsg").textContent="";
   window.scrollTo(0,0);
 }
@@ -286,12 +286,19 @@ function closeDeposit(){
 }
 async function paymentUnavailable(){
   const msg=document.getElementById("depositMsg");
-  msg.textContent="Creating payment...";
+  const inputAmount=Number(document.getElementById("rechargeAmount").value);
 
-  const amountText=document.getElementById("depositAmount").textContent
-    .replace("₹","").replace(/,/g,"").trim();
-  const rupees=Number(amountText);
-  const amount=Math.round(rupees*100);
+  if(!Number.isFinite(inputAmount) || inputAmount<=0){
+    msg.textContent="Enter a valid recharge amount.";
+    return;
+  }
+
+  // User enters rupees. API requires paise:
+  // 500 -> 50000, 225 -> 22500.
+  const amount=Math.round(inputAmount*100);
+  const displayAmount=(amount/100).toFixed(2);
+
+  msg.textContent="Creating payment for ₹"+displayAmount+"...";
 
   if(!accessToken){
     msg.textContent="Please login again.";
@@ -322,32 +329,27 @@ async function paymentUnavailable(){
       throw new Error(data.message||"Payment creation failed");
     }
 
-    // Find a returned payment/checkout URL at any nesting level.
     function findPaymentUrl(x){
-      if(!x) return null;
-      if(typeof x==="string" && /^https?:\/\//i.test(x)) return x;
-      if(typeof x!=="object") return null;
-
-      const preferred=["url","payUrl","paymentUrl","redirectUrl","checkoutUrl","payment_url","pay_url","redirect_url","checkout_url"];
-      for(const k of preferred){
-        if(typeof x[k]==="string" && /^https?:\/\//i.test(x[k])) return x[k];
+      if(!x)return null;
+      if(typeof x==="string" && /^https?:\/\//i.test(x))return x;
+      if(typeof x!=="object")return null;
+      for(const k of ["url","payUrl","paymentUrl","redirectUrl","checkoutUrl","payment_url","pay_url","redirect_url","checkout_url"]){
+        if(typeof x[k]==="string" && /^https?:\/\//i.test(x[k]))return x[k];
       }
       for(const k of Object.keys(x)){
-        const found=findPaymentUrl(x[k]);
-        if(found) return found;
+        const u=findPaymentUrl(x[k]);
+        if(u)return u;
       }
       return null;
     }
 
     const paymentUrl=findPaymentUrl(data);
-
     if(paymentUrl){
       msg.textContent="Opening payment page...";
-      window.location.assign(paymentUrl);
-      return;
+      window.location.href=paymentUrl;
+    }else{
+      msg.textContent="Payment created, but no payment URL was returned.";
     }
-
-    msg.textContent="Payment was created, but the API did not return a payment URL. Open DevTools → Console to see the response.";
   }catch(err){
     console.error(err);
     msg.textContent=err.message||"Payment request failed.";
